@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IntelliMFG — AI Demo Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0B1120;
+  --bg-deep:  #070C18;
+  --card:     #111C30;
+  --card-h:   #162138;
+  --line:     #1E2D45;
+  --line-s:   #162032;
+  --teal:     #13D8B4;
+  --teal-dim: rgba(19,216,180,0.10);
+  --teal-glow:rgba(19,216,180,0.28);
+  --amber:    #F2A93B;
+  --amber-dim:rgba(242,169,59,0.10);
+  --red:      #E8546B;
+  --purple:   #8B7CF8;
+  --purple-dim:rgba(139,124,248,0.10);
+  --ink:      #E7ECF5;
+  --ink-s:    #9AAFC8;
+  --ink-m:    #4E6282;
+  --mono:     'IBM Plex Mono', monospace;
+  --disp:     'Space Grotesk', sans-serif;
+  --body:     'Inter', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── AMBIENT BACKGROUND ── */
+.bg-canvas {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  overflow: hidden;
+}
+.bg-canvas svg { width: 100%; height: 100%; opacity: 0.045; }
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 40;
+  background: rgba(7,12,24,0.80); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  padding: 0 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 62px;
+}
+.nav-brand { display: flex; align-items: center; gap: 13px; }
+.nav-mark {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--teal), #0B8A72);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-family: var(--disp); font-weight: 700; color: #041A14;
+  box-shadow: 0 0 18px var(--teal-glow);
+}
+.nav-name {
+  font-family: var(--disp); font-weight: 700; font-size: 17px; letter-spacing: 0.2px;
+}
+.nav-name span { color: var(--teal); }
+.nav-sub {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-m);
+  letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px;
+}
+.nav-right { display: flex; align-items: center; gap: 20px; }
+.nav-link {
+  font-size: 13px; color: var(--ink-s); text-decoration: none;
+  transition: color .15s; padding: 4px 0;
+}
+.nav-link:hover { color: var(--ink); }
+.nav-count {
+  font-family: var(--mono); font-size: 11px; color: var(--teal);
+  border: 1px solid rgba(19,216,180,0.3); padding: 4px 12px;
+  border-radius: 14px; background: var(--teal-dim);
+}
+
+/* ── HERO ── */
+.hero {
+  position: relative; z-index: 1;
+  padding: 80px 48px 60px;
+  border-bottom: 1px solid var(--line);
+}
+.hero-eyebrow {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 2.5px;
+  text-transform: uppercase; color: var(--teal); margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.hero-eyebrow::before {
+  content: ''; width: 28px; height: 1px; background: var(--teal);
+}
+.hero-h1 {
+  font-family: var(--disp); font-weight: 700;
+  font-size: clamp(34px, 5vw, 56px);
+  line-height: 1.10; letter-spacing: -0.5px;
+  max-width: 780px; margin-bottom: 22px;
+}
+.hero-h1 em {
+  font-style: normal;
+  background: linear-gradient(90deg, var(--teal), #5EEAD4);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub {
+  font-size: 16px; color: var(--ink-s); line-height: 1.65;
+  max-width: 620px; margin-bottom: 36px;
+}
+.hero-stats {
+  display: flex; gap: 36px; flex-wrap: wrap;
+}
+.hstat {
+  display: flex; flex-direction: column; gap: 3px;
+}
+.hstat-val {
+  font-family: var(--mono); font-weight: 500; font-size: 22px; color: var(--ink);
+}
+.hstat-lbl {
+  font-size: 11.5px; color: var(--ink-m); letter-spacing: 0.3px;
+}
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  position: relative; z-index: 1;
+  padding: 22px 48px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+}
+.filter-label {
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink-m);
+  text-transform: uppercase; letter-spacing: 1.2px; margin-right: 4px;
+}
+.filter-btn {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.5px;
+  padding: 6px 15px; border-radius: 20px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent;
+  color: var(--ink-s); transition: all .18s;
+}
+.filter-btn:hover { border-color: var(--teal); color: var(--teal); }
+.filter-btn.active {
+  background: var(--teal-dim); border-color: var(--teal); color: var(--teal);
+}
+
+/* ── GRID ── */
+.grid-wrap {
+  position: relative; z-index: 1;
+  padding: 36px 48px 60px;
+}
+.grid-section-label {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-m);
+  text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 18px;
+}
+.demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+/* ── TILE ── */
+.tile {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 26px 26px 22px;
+  display: flex; flex-direction: column; gap: 0;
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+  cursor: pointer; text-decoration: none; color: inherit;
+  position: relative; overflow: hidden;
+}
+.tile::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; border-radius: 14px 14px 0 0;
+  background: var(--teal); opacity: 0; transition: opacity .2s;
+}
+.tile:hover { transform: translateY(-3px); border-color: rgba(19,216,180,0.35); box-shadow: 0 8px 32px rgba(0,0,0,0.35); }
+.tile:hover::before { opacity: 1; }
+.tile.coming-soon { opacity: 0.55; cursor: default; }
+.tile.coming-soon:hover { transform: none; border-color: var(--line); box-shadow: none; }
+.tile.coming-soon:hover::before { opacity: 0; }
+
+.tile-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.tile-icon {
+  width: 46px; height: 46px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.tile-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
+.badge {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+  letter-spacing: 0.8px; padding: 3px 9px; border-radius: 10px;
+  text-transform: uppercase;
+}
+.badge-live { background: rgba(19,216,180,0.12); color: var(--teal); border: 1px solid rgba(19,216,180,0.3); }
+.badge-soon { background: rgba(78,98,130,0.2); color: var(--ink-m); border: 1px solid var(--line); }
+.badge-cat { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(242,169,59,0.25); }
+.badge-cat.purple { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(139,124,248,0.25); }
+.badge-cat.red { background: rgba(232,84,107,0.10); color: var(--red); border: 1px solid rgba(232,84,107,0.25); }
+.badge-cat.teal { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(19,216,180,0.25); }
+
+.tile-name {
+  font-family: var(--disp); font-weight: 700; font-size: 17.5px;
+  letter-spacing: 0.1px; margin-bottom: 8px; line-height: 1.25;
+}
+.tile-desc {
+  font-size: 13px; color: var(--ink-s); line-height: 1.6;
+  margin-bottom: 18px; flex: 1;
+}
+.tile-meta {
+  display: flex; gap: 16px; margin-bottom: 18px; flex-wrap: wrap;
+}
+.tile-meta-item {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.tile-meta-val {
+  font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--ink);
+}
+.tile-meta-lbl {
+  font-size: 10.5px; color: var(--ink-m); letter-spacing: 0.2px;
+}
+.tile-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 16px; border-top: 1px solid var(--line-s);
+}
+.tile-data-src {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-m);
+  letter-spacing: 0.3px; line-height: 1.4; max-width: 200px;
+}
+.launch-btn {
+  font-family: var(--disp); font-weight: 600; font-size: 12.5px;
+  padding: 8px 18px; border-radius: 8px;
+  background: var(--teal); color: #041A14;
+  border: none; cursor: pointer; transition: background .15s;
+  text-decoration: none; display: inline-block; white-space: nowrap;
+}
+.launch-btn:hover { background: #3CEFC9; }
+.soon-btn {
+  font-family: var(--disp); font-size: 12px;
+  padding: 8px 18px; border-radius: 8px;
+  background: transparent; color: var(--ink-m);
+  border: 1px solid var(--line); cursor: default;
+}
+
+/* ── FOOTER ── */
+footer {
+  position: relative; z-index: 1;
+  border-top: 1px solid var(--line); padding: 28px 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.footer-left { font-size: 12.5px; color: var(--ink-m); line-height: 1.5; }
+.footer-left b { color: var(--ink-s); }
+.footer-right {
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink-m);
+  letter-spacing: 0.5px;
+}
+
+/* hidden class for filter */
+.tile[data-hidden="true"] { display: none; }
+
+@media (max-width: 720px) {
+  nav, .hero, .filter-bar, .grid-wrap, footer { padding-left: 22px; padding-right: 22px; }
+  .hero { padding-top: 48px; padding-bottom: 40px; }
+  .hero-stats { gap: 22px; }
+}
+</style>
+</head>
+<body>
+
+<!-- AMBIENT BACKGROUND SVG -->
+<div class="bg-canvas">
+  <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <!-- pipeline flow lines -->
+    <g stroke="#13D8B4" stroke-width="1" fill="none">
+      <!-- horizontal runs -->
+      <line x1="0" y1="180" x2="1440" y2="180"/>
+      <line x1="0" y1="420" x2="1440" y2="420"/>
+      <line x1="0" y1="700" x2="1440" y2="700"/>
+      <!-- vertical drops connecting the runs -->
+      <line x1="120" y1="0"   x2="120" y2="900"/>
+      <line x1="360" y1="0"   x2="360" y2="900"/>
+      <line x1="600" y1="0"   x2="600" y2="900"/>
+      <line x1="840" y1="0"   x2="840" y2="900"/>
+      <line x1="1080" y1="0"  x2="1080" y2="900"/>
+      <line x1="1320" y1="0"  x2="1320" y2="900"/>
+      <!-- junction dots -->
+      <circle cx="120"  cy="180" r="4"/>
+      <circle cx="360"  cy="180" r="4"/>
+      <circle cx="600"  cy="180" r="4"/>
+      <circle cx="840"  cy="420" r="4"/>
+      <circle cx="1080" cy="420" r="4"/>
+      <circle cx="1320" cy="700" r="4"/>
+      <circle cx="120"  cy="700" r="4"/>
+      <circle cx="600"  cy="420" r="4"/>
+    </g>
+    <!-- subtle node squares at intersections -->
+    <g fill="none" stroke="#F2A93B" stroke-width="0.8">
+      <rect x="112" y="172" width="16" height="16" rx="2"/>
+      <rect x="592" y="412" width="16" height="16" rx="2"/>
+      <rect x="1072" y="692" width="16" height="16" rx="2"/>
+    </g>
+  </svg>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-mark">⬡</div>
+    <div>
+      <div class="nav-name">INTELLI<span>MFG</span></div>
+      <div class="nav-sub">AI Demo Suite</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <a class="nav-link" href="#">Documentation</a>
+    <a class="nav-link" href="#">About</a>
+    <div class="nav-count" id="live-count">1 Live</div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Pharmaceutical Manufacturing · AI Interventions</div>
+  <h1 class="hero-h1">
+    Where manufacturing data<br>meets <em>AI intelligence</em>
+  </h1>
+  <p class="hero-sub">
+    A suite of interactive demos showing how AI can intervene at each stage of a pharmaceutical production line — from production order receipt through to batch release. Each demo is grounded in real industry data and published research.
+  </p>
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-val">15</div><div class="hstat-lbl">MES stages covered</div></div>
+    <div class="hstat"><div class="hstat-val">1,005</div><div class="hstat-lbl">Real batches as baseline</div></div>
+    <div class="hstat"><div class="hstat-val">11</div><div class="hstat-lbl">Live AI monitors</div></div>
+    <div class="hstat"><div class="hstat-val" id="stat-demos">1</div><div class="hstat-lbl">Demos available</div></div>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <span class="filter-label">Filter</span>
+  <button class="filter-btn active" data-filter="all" onclick="filter(this,'all')">All demos</button>
+  <button class="filter-btn" data-filter="manufacturing" onclick="filter(this,'manufacturing')">Manufacturing</button>
+  <button class="filter-btn" data-filter="quality" onclick="filter(this,'quality')">Quality</button>
+  <button class="filter-btn" data-filter="equipment" onclick="filter(this,'equipment')">Equipment</button>
+  <button class="filter-btn" data-filter="batch-record" onclick="filter(this,'batch-record')">Batch Records</button>
+</div>
+
+<!-- GRID -->
+<div class="grid-wrap">
+  <div class="grid-section-label" id="grid-label">Showing all demos</div>
+  <div class="demo-grid" id="demo-grid">
+
+    <!-- TILE 1 — LIVE -->
+    <a class="tile" href="manufacturing-floor-demo.html" data-cats="manufacturing quality equipment">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(19,216,180,0.1);border:1px solid rgba(19,216,180,0.25)">⚙️</div>
+        <div class="tile-badges">
+          <span class="badge badge-live">● Live</span>
+          <span class="badge badge-cat teal">Manufacturing</span>
+        </div>
+      </div>
+      <div class="tile-name">Manufacturing Floor — Full Line View</div>
+      <div class="tile-desc">
+        Live simulation of all 15 PAS-X MES stages from production order receipt to quality release. AI monitors 11 real-time process parameters and intervenes with warnings, root-cause context, and recommended actions as values cross research-grounded thresholds.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">15</div>
+          <div class="tile-meta-lbl">Stages</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">11</div>
+          <div class="tile-meta-lbl">AI monitors</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">4s</div>
+          <div class="tile-meta-lbl">Tick rate</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">98.3%</div>
+          <div class="tile-meta-lbl">Baseline yield</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">Lek Pharma dataset · 1,005 batches<br>BioPlan Associates 22nd Annual</div>
+        <span class="launch-btn">Launch →</span>
+      </div>
+    </a>
+
+    <!-- TILE 2 — COMING SOON: Deviation Intelligence -->
+    <div class="tile coming-soon" data-cats="quality">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(242,169,59,0.08);border:1px solid rgba(242,169,59,0.2)">⚠️</div>
+        <div class="tile-badges">
+          <span class="badge badge-soon">Coming Soon</span>
+          <span class="badge badge-cat">Quality</span>
+        </div>
+      </div>
+      <div class="tile-name">Deviation Intelligence & Root Cause AI</div>
+      <div class="tile-desc">
+        AI-assisted deviation investigation — similarity search across historical events, automated root-cause hypothesis generation, and CAPA drafting. Based on Roche's published case study showing 50% reduction in investigation time.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">50%</div>
+          <div class="tile-meta-lbl">Time saved</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">$25–55K</div>
+          <div class="tile-meta-lbl">Cost per OOS event</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">Roche case study · BioPlan Associates</div>
+        <span class="soon-btn">Coming Soon</span>
+      </div>
+    </div>
+
+    <!-- TILE 3 — COMING SOON: EBR Review -->
+    <div class="tile coming-soon" data-cats="batch-record quality">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(139,124,248,0.08);border:1px solid rgba(139,124,248,0.2)">📄</div>
+        <div class="tile-badges">
+          <span class="badge badge-soon">Coming Soon</span>
+          <span class="badge badge-cat purple">Batch Records</span>
+        </div>
+      </div>
+      <div class="tile-name">Electronic Batch Record — AI Review</div>
+      <div class="tile-desc">
+        AI-powered EBR analysis with anomaly detection, completeness checking, and Review by Exception. Shows how a 150-page batch record becomes a 3-page exception report — reducing review time from 48 hours to under 2 hours.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">150→3</div>
+          <div class="tile-meta-lbl">Pages reviewed</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">48h</div>
+          <div class="tile-meta-lbl">Avg review time</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">EY analysis · BioPharm International</div>
+        <span class="soon-btn">Coming Soon</span>
+      </div>
+    </div>
+
+    <!-- TILE 4 — COMING SOON: Predictive Maintenance -->
+    <div class="tile coming-soon" data-cats="equipment">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(232,84,107,0.08);border:1px solid rgba(232,84,107,0.2)">🔧</div>
+        <div class="tile-badges">
+          <span class="badge badge-soon">Coming Soon</span>
+          <span class="badge badge-cat red">Equipment</span>
+        </div>
+      </div>
+      <div class="tile-name">Predictive Maintenance & Asset Intelligence</div>
+      <div class="tile-desc">
+        Equipment health simulation using real sensor patterns — vibration FFT signatures, ejection force trends, punch stiffness curves. Shows AI predicting failures before they cause unplanned downtime, grounded in pharma OEE data.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">&lt;50%</div>
+          <div class="tile-meta-lbl">Pharma avg OEE</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">25–30%</div>
+          <div class="tile-meta-lbl">Downtime reduction</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">SCW.ai benchmarking · Lek dataset</div>
+        <span class="soon-btn">Coming Soon</span>
+      </div>
+    </div>
+
+    <!-- TILE 5 — COMING SOON: Quality Release Copilot -->
+    <div class="tile coming-soon" data-cats="quality batch-record">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(19,216,180,0.08);border:1px solid rgba(19,216,180,0.2)">✅</div>
+        <div class="tile-badges">
+          <span class="badge badge-soon">Coming Soon</span>
+          <span class="badge badge-cat teal">Quality</span>
+        </div>
+      </div>
+      <div class="tile-name">Quality Release Copilot</div>
+      <div class="tile-desc">
+        AI assistant for QA batch release — summarises deviations, flags missing documentation, scores overall batch risk, and checks regulatory compliance. Demonstrates how best-in-class facilities reach 85–95% Right-First-Time.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">85–95%</div>
+          <div class="tile-meta-lbl">RFT target</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">60–70%</div>
+          <div class="tile-meta-lbl">Paper-based RFT</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">GMP Pros · Quality Executive Partners</div>
+        <span class="soon-btn">Coming Soon</span>
+      </div>
+    </div>
+
+    <!-- TILE 6 — COMING SOON: Operator Intelligence -->
+    <div class="tile coming-soon" data-cats="manufacturing">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(242,169,59,0.08);border:1px solid rgba(242,169,59,0.2)">👷</div>
+        <div class="tile-badges">
+          <span class="badge badge-soon">Coming Soon</span>
+          <span class="badge badge-cat">Manufacturing</span>
+        </div>
+      </div>
+      <div class="tile-name">Operator Workforce Intelligence</div>
+      <div class="tile-desc">
+        Training compliance forecasting, qualification expiry prediction, shift coverage analysis, and error-risk scoring. Grounded in BioPlan data showing operator error is now the #1 cause of batch failures at 3.5–3.8% industry-wide.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">3.5–3.8%</div>
+          <div class="tile-meta-lbl">Operator error rate</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">80%</div>
+          <div class="tile-meta-lbl">Deviations from human error</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">BioPlan 22nd Annual · GMP Pros</div>
+        <span class="soon-btn">Coming Soon</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">
+    <b>IntelliMFG AI Demo Suite</b><br>
+    Data sourced from Lek Pharmaceuticals (Žagar & Mihelič, Scientific Data 2022), BioPlan Associates Annual Reports, USP &lt;41&gt;, and published industry benchmarking studies. Demos are illustrative simulations, not connected to live production systems.
+  </div>
+  <div class="footer-right">v1.0 · 2025</div>
+</footer>
+
+<script>
+function filter(btn, cat) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const tiles = document.querySelectorAll('.tile');
+  let visible = 0;
+  tiles.forEach(tile => {
+    const cats = tile.dataset.cats || '';
+    const show = cat === 'all' || cats.includes(cat);
+    tile.dataset.hidden = show ? 'false' : 'true';
+    if (show) visible++;
+  });
+
+  const label = document.getElementById('grid-label');
+  const catNames = { all:'all demos', manufacturing:'Manufacturing demos', quality:'Quality demos', equipment:'Equipment demos', 'batch-record':'Batch Record demos' };
+  label.textContent = `Showing ${visible} ${catNames[cat] || 'demos'}`;
+}
+
+// Count live demos dynamically
+const liveCount = document.querySelectorAll('.badge-live').length;
+document.getElementById('live-count').textContent = liveCount + ' Live';
+document.getElementById('stat-demos').textContent = document.querySelectorAll('.tile').length;
+</script>
+</body>
+</html>

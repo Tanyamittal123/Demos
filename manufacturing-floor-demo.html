@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Production Line Telemetry — AI Intervention Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B1120;
+  --bg-deep:#070B14;
+  --panel:#101828;
+  --panel-2:#0D1420;
+  --line:#1E293B;
+  --line-soft:#172132;
+  --teal:#13D8B4;
+  --teal-dim:rgba(19,216,180,0.12);
+  --teal-glow:rgba(19,216,180,0.35);
+  --amber:#F2A93B;
+  --amber-dim:rgba(242,169,59,0.12);
+  --red:#E8546B;
+  --red-dim:rgba(232,84,107,0.12);
+  --ink:#E7ECF5;
+  --ink-soft:#9CA9C0;
+  --ink-mute:#5C6A82;
+  --mono:'IBM Plex Mono',monospace;
+  --disp:'Space Grotesk',sans-serif;
+  --body:'Inter',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:
+    radial-gradient(ellipse 1200px 600px at 20% -10%, rgba(19,216,180,0.06), transparent),
+    radial-gradient(ellipse 900px 500px at 100% 10%, rgba(242,169,59,0.04), transparent),
+    var(--bg);
+  color:var(--ink);
+  font-family:var(--body);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+
+/* ════════ HEADER ════════ */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 36px;border-bottom:1px solid var(--line);
+  background:rgba(11,17,32,0.85);backdrop-filter:blur(10px);
+  position:sticky;top:0;z-index:50;
+}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-mark{
+  width:38px;height:38px;border-radius:9px;
+  background:linear-gradient(135deg,var(--teal),#0B8A72);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--disp);font-weight:700;font-size:17px;color:#04201A;
+  box-shadow:0 0 22px var(--teal-glow);
+}
+.brand-text-main{font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:0.3px}
+.brand-text-sub{font-family:var(--mono);font-size:10.5px;color:var(--ink-mute);letter-spacing:1.6px;text-transform:uppercase;margin-top:1px}
+
+.header-mid{display:flex;gap:30px}
+.hm-stat{text-align:center}
+.hm-val{font-family:var(--mono);font-weight:600;font-size:19px;color:var(--teal)}
+.hm-lbl{font-family:var(--mono);font-size:9.5px;color:var(--ink-mute);letter-spacing:1.2px;text-transform:uppercase;margin-top:2px}
+
+.live-pill{
+  display:flex;align-items:center;gap:7px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:1.4px;
+  color:var(--teal);border:1px solid rgba(19,216,180,0.4);
+  padding:6px 13px;border-radius:20px;text-transform:uppercase;
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:blink 1.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+
+/* ════════ MAIN ════════ */
+.wrap{padding:28px 36px 40px}
+.title-row{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap;gap:14px}
+.eyebrow{font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.page-title{font-family:var(--disp);font-weight:700;font-size:27px;letter-spacing:0.2px}
+.page-title em{font-style:normal;color:var(--teal)}
+.title-meta{display:flex;gap:10px;flex-wrap:wrap}
+.meta-chip{
+  font-family:var(--mono);font-size:11px;color:var(--ink-soft);
+  border:1px solid var(--line);padding:5px 12px;border-radius:5px;background:var(--panel-2);
+}
+.meta-chip b{color:var(--ink)}
+
+/* ════════ BELT ════════ */
+.belt-shell{
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  overflow:hidden;margin-bottom:18px;position:relative;
+}
+.belt-scroll{overflow-x:auto;overflow-y:hidden;padding-bottom:4px}
+.belt-inner{
+  display:flex;align-items:flex-end;gap:0;
+  padding:26px 28px 0;min-width:max-content;position:relative;
+}
+.belt-inner::before{ /* the literal belt strip */
+  content:'';position:absolute;left:0;right:0;bottom:84px;height:8px;
+  background:repeating-linear-gradient(90deg,#16202F 0 18px,#0F1726 18px 36px);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--bg-deep);
+}
+
+.flow-end{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:64px;padding-bottom:84px}
+.flow-end-box{
+  width:48px;height:48px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:21px;border:1.5px solid;
+}
+.flow-end-box.in{background:rgba(19,216,180,0.08);border-color:var(--teal)}
+.flow-end-box.out{background:rgba(242,169,59,0.08);border-color:var(--amber)}
+.flow-end-lbl{font-family:var(--mono);font-size:9px;color:var(--ink-mute);text-transform:uppercase;letter-spacing:1px;text-align:center}
+
+.conn{flex:0 0 26px;height:2px;background:var(--line);align-self:flex-end;margin-bottom:115px;position:relative}
+.conn::after{content:'';position:absolute;right:-1px;top:-3px;border-left:6px solid var(--line);border-top:4px solid transparent;border-bottom:4px solid transparent}
+
+/* station */
+.station{display:flex;flex-direction:column;align-items:center;min-width:92px;cursor:pointer;user-select:none}
+.station-card{
+  width:84px;height:104px;border-radius:11px;background:var(--panel-2);
+  border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;position:relative;transition:border-color .25s,box-shadow .25s,transform .15s;
+}
+.station:hover .station-card{transform:translateY(-2px);border-color:var(--teal);box-shadow:0 0 18px var(--teal-glow)}
+.station-card.s-warn{border-color:var(--amber);box-shadow:0 0 16px rgba(242,169,59,0.28)}
+.station-card.s-alert{border-color:var(--red);box-shadow:0 0 18px rgba(232,84,107,0.32);animation:alert-pulse 1.8s infinite}
+.station-card.s-pending{opacity:0.45}
+@keyframes alert-pulse{0%,100%{box-shadow:0 0 18px rgba(232,84,107,0.32)}50%{box-shadow:0 0 28px rgba(232,84,107,0.55)}}
+
+.station-icon{font-size:22px;line-height:1}
+.station-num{font-family:var(--mono);font-size:9px;color:var(--ink-mute)}
+.station-reading{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--ink-soft)}
+.s-warn .station-reading{color:var(--amber)}
+.s-alert .station-reading{color:var(--red)}
+.s-ok .station-reading{color:var(--teal)}
+
+.ai-chip{
+  position:absolute;top:-9px;right:-9px;width:21px;height:21px;border-radius:50%;
+  background:var(--teal);color:#04201A;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 9px var(--teal-glow);
+  font-family:var(--disp);
+}
+.ai-chip.warn{background:var(--amber);color:#3A2400;box-shadow:0 0 9px rgba(242,169,59,0.5)}
+.ai-chip.alert{background:var(--red);color:#3A0612;box-shadow:0 0 9px rgba(232,84,107,0.5);animation:none}
+.ai-chip.muted{background:var(--ink-mute);color:#0B1120;box-shadow:none}
+
+.station-label{
+  font-family:var(--body);font-size:10.5px;font-weight:500;color:var(--ink-soft);
+  text-align:center;line-height:1.25;max-width:90px;margin-top:9px;min-height:26px;
+}
+.station-mini{
+  margin-top:6px;display:flex;gap:1.5px;align-items:flex-end;height:18px;width:78px;
+}
+.smini-bar{flex:1;background:var(--line);border-radius:1px 1px 0 0;min-height:2px}
+.smini-bar.bad{background:var(--red)}
+.smini-bar.warn-b{background:var(--amber)}
+
+/* moving goods on belt */
+.goods{position:absolute;bottom:96px;font-size:15px;animation:goods-move 9s linear infinite;opacity:0.85}
+.goods:nth-child(2){animation-delay:-3s}
+.goods:nth-child(3){animation-delay:-6s}
+@keyframes goods-move{from{left:-30px}to{left:104%}}
+
+/* ════════ TICKER ════════ */
+.ticker-shell{
+  border-top:1px solid var(--line);background:var(--bg-deep);
+  padding:10px 0;overflow:hidden;white-space:nowrap;position:relative;
+}
+.ticker-shell::before,.ticker-shell::after{
+  content:'';position:absolute;top:0;bottom:0;width:60px;z-index:2;pointer-events:none;
+}
+.ticker-shell::before{left:0;background:linear-gradient(90deg,var(--bg-deep),transparent)}
+.ticker-shell::after{right:0;background:linear-gradient(270deg,var(--bg-deep),transparent)}
+.ticker-track{display:inline-flex;gap:42px;animation:ticker-scroll 38s linear infinite;padding-left:100%}
+.ticker-item{font-family:var(--mono);font-size:11.5px;color:var(--ink-mute);display:inline-flex;gap:8px;align-items:center}
+.ticker-item b{color:var(--ink-soft)}
+.ticker-dot{width:5px;height:5px;border-radius:50%;background:var(--teal)}
+.ticker-dot.warn{background:var(--amber)}
+.ticker-dot.alert{background:var(--red)}
+@keyframes ticker-scroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+
+/* ════════ AI BANNER ════════ */
+.ai-banner{
+  margin:18px 0;padding:16px 22px;border-radius:11px;
+  background:var(--teal-dim);border:1px solid rgba(19,216,180,0.3);
+  display:flex;gap:16px;align-items:flex-start;transition:background .4s,border-color .4s;
+}
+.ai-banner.warn{background:var(--amber-dim);border-color:rgba(242,169,59,0.35)}
+.ai-banner.alert{background:var(--red-dim);border-color:rgba(232,84,107,0.4)}
+.ai-banner-icon{font-size:19px;margin-top:1px}
+.ai-banner-body{font-size:13.5px;color:var(--ink-soft);line-height:1.55}
+.ai-banner-body b{color:var(--ink)}
+.ai-banner-tag{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;
+  color:var(--teal);margin-bottom:4px;display:block;
+}
+.ai-banner.warn .ai-banner-tag{color:var(--amber)}
+.ai-banner.alert .ai-banner-tag{color:var(--red)}
+
+/* ════════ GRID PANELS ════════ */
+.grid3{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:16px;margin-top:6px}
+@media(max-width:1080px){.grid3{grid-template-columns:1fr}}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:18px 20px}
+.panel-head{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.panel-dot{width:7px;height:7px;border-radius:50%}
+.panel-title{font-family:var(--disp);font-weight:600;font-size:14px;letter-spacing:0.2px}
+.panel-sub{font-family:var(--mono);font-size:10px;color:var(--ink-mute);margin-left:auto;letter-spacing:0.5px}
+
+.alert-row{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft)}
+.alert-row:last-child{border-bottom:none}
+.alert-tag{
+  font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.6px;
+  padding:3px 8px;border-radius:4px;flex-shrink:0;height:fit-content;text-transform:uppercase;
+}
+.tag-alert{background:var(--red-dim);color:var(--red);border:1px solid rgba(232,84,107,0.35)}
+.tag-warn{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(242,169,59,0.35)}
+.tag-resolved{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(19,216,180,0.35)}
+.alert-text{font-size:12px;color:var(--ink-soft);line-height:1.45}
+.alert-time{font-family:var(--mono);font-size:9.5px;color:var(--ink-mute);margin-top:3px}
+
+.kv-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12px}
+.kv-row:last-child{border-bottom:none}
+.kv-k{color:var(--ink-soft)}
+.kv-v{font-family:var(--mono);font-weight:600}
+.v-teal{color:var(--teal)}.v-amber{color:var(--amber)}.v-red{color:var(--red)}
+
+.empty-note{font-size:12px;color:var(--ink-mute);padding:8px 0;line-height:1.5}
+
+/* ════════ DRAWER ════════ */
+.scrim{
+  position:fixed;inset:0;background:rgba(5,8,16,0.6);backdrop-filter:blur(3px);
+  z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.scrim.open{opacity:1;pointer-events:all}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:480px;max-width:92vw;
+  background:var(--panel);border-left:1px solid var(--line);
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  z-index:201;overflow-y:auto;
+}
+.scrim.open .drawer{transform:translateX(0)}
+.drawer-head{
+  padding:22px 24px 16px;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:flex-start;
+  position:sticky;top:0;background:var(--panel);z-index:5;
+}
+.drawer-eyebrow{font-family:var(--mono);font-size:10px;color:var(--ink-mute);letter-spacing:1.4px;text-transform:uppercase;margin-bottom:5px}
+.drawer-title{font-family:var(--disp);font-weight:700;font-size:20px}
+.drawer-close{
+  width:30px;height:30px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);
+  color:var(--ink-soft);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .15s;
+}
+.drawer-close:hover{border-color:var(--teal);color:var(--ink)}
+.drawer-body{padding:20px 24px 32px}
+.d-section{margin-bottom:20px}
+.d-section-title{
+  font-family:var(--mono);font-size:10.5px;color:var(--ink-mute);text-transform:uppercase;
+  letter-spacing:1.2px;margin-bottom:10px;display:flex;align-items:center;gap:8px;
+}
+.d-section-title::after{content:'';flex:1;height:1px;background:var(--line)}
+
+.status-box{border-radius:10px;padding:15px 17px;border:1px solid}
+.status-box.ok{background:var(--teal-dim);border-color:rgba(19,216,180,0.3)}
+.status-box.warn{background:var(--amber-dim);border-color:rgba(242,169,59,0.35)}
+.status-box.alert{background:var(--red-dim);border-color:rgba(232,84,107,0.4)}
+.status-head{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.status-pill{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:11px;text-transform:uppercase}
+.status-box.ok .status-pill{background:var(--teal);color:#04201A}
+.status-box.warn .status-pill{background:var(--amber);color:#3A2400}
+.status-box.alert .status-pill{background:var(--red);color:#3A0612}
+.status-metric{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.status-msg{font-size:13px;color:var(--ink-soft);line-height:1.6;margin-top:9px}
+.status-msg b{color:var(--ink)}
+
+.action-box{
+  margin-top:12px;padding:13px 15px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);
+  font-size:12.5px;color:var(--ink-soft);line-height:1.5;
+}
+.action-box .a-label{font-family:var(--mono);font-size:9.5px;color:var(--teal);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px}
+
+.dtable{width:100%;border-collapse:collapse;font-size:12px}
+.dtable td{padding:8px 2px;border-bottom:1px solid var(--line-soft);font-family:var(--mono);color:var(--ink-soft)}
+.dtable td:first-child{font-family:var(--body);color:var(--ink);width:55%}
+.dtable tr:last-child td{border-bottom:none}
+
+.dchart{display:flex;gap:2px;align-items:flex-end;height:54px;margin-top:4px}
+.dchart-bar{flex:1;border-radius:2px 2px 0 0;min-height:3px;background:var(--line)}
+.dchart-bar.ok-b{background:var(--teal);opacity:0.55}
+.dchart-bar.warn-b2{background:var(--amber)}
+.dchart-bar.bad-b{background:var(--red)}
+.chart-legend{display:flex;gap:14px;margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--ink-mute)}
+.chart-legend span{display:inline-flex;align-items:center;gap:5px}
+.leg-dot{width:7px;height:7px;border-radius:2px}
+
+.dgauge-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.dgauge-label{font-size:11.5px;color:var(--ink-soft);min-width:118px}
+.dgauge-bar{flex:1;height:6px;background:var(--panel-2);border-radius:3px;overflow:hidden}
+.dgauge-fill{height:100%;border-radius:3px;transition:width .5s}
+.dgauge-pct{font-family:var(--mono);font-size:10.5px;color:var(--ink-mute);min-width:34px;text-align:right}
+
+.note-box{
+  font-size:11.5px;color:var(--ink-mute);line-height:1.55;padding:11px 14px;
+  background:var(--panel-2);border-radius:8px;border:1px solid var(--line);margin-top:14px;
+}
+.note-box b{color:var(--ink-soft)}
+
+.drawer-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
+.dbtn{
+  padding:9px 16px;border-radius:8px;font-size:12.5px;font-weight:500;border:none;cursor:pointer;
+  transition:all .15s;font-family:var(--body);
+}
+.dbtn-primary{background:var(--teal);color:#04201A;font-weight:600}
+.dbtn-primary:hover{background:#3CEFC9}
+.dbtn-secondary{background:var(--panel-2);color:var(--ink-soft);border:1px solid var(--line)}
+.dbtn-secondary:hover{border-color:var(--teal);color:var(--ink)}
+
+/* toast */
+.toast{
+  position:fixed;bottom:24px;right:24px;max-width:340px;
+  background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 17px;
+  display:flex;gap:11px;transform:translateY(16px);opacity:0;transition:all .3s;
+  z-index:300;pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast-icon{font-size:17px;flex-shrink:0;margin-top:1px}
+.toast-body{font-size:11.5px;color:var(--ink-soft);line-height:1.5}
+.toast-body b{color:var(--ink);display:block;font-size:12.5px;margin-bottom:2px}
+
+.hint{
+  font-family:var(--mono);font-size:10.5px;color:var(--ink-mute);text-align:right;
+  padding:10px 28px 0;letter-spacing:0.4px;
+}
+
+.footnote{margin-top:22px;font-size:11px;color:var(--ink-mute);line-height:1.6;padding:14px 18px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px}
+.footnote b{color:var(--ink-soft)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">⬡</div>
+    <div>
+      <div class="brand-text-main">LINEWATCH</div>
+      <div class="brand-text-sub">Process Intelligence · Live</div>
+    </div>
+  </div>
+  <div class="header-mid">
+    <div class="hm-stat"><div class="hm-val" id="hdr-yield">98.3%</div><div class="hm-lbl">Batch Yield</div></div>
+    <div class="hm-stat"><div class="hm-val" id="hdr-release" style="color:var(--amber)">90.6%</div><div class="hm-lbl">Drug Release</div></div>
+    <div class="hm-stat"><div class="hm-val" id="hdr-flags" style="color:var(--ink)">0</div><div class="hm-lbl">Active Flags</div></div>
+  </div>
+  <div class="live-pill"><div class="live-dot"></div>Live Telemetry</div>
+</header>
+
+<div class="wrap">
+
+  <div class="title-row">
+    <div>
+      <div class="eyebrow">Manufacturing Execution · PAS-X Workflow</div>
+      <div class="page-title">Production Line <em>Floor View</em></div>
+    </div>
+    <div class="title-meta">
+      <div class="meta-chip">Product: <b>Film-Coated Tablet, Cholesterol-Lowering API</b></div>
+      <div class="meta-chip">Batch: <b>BT-0847</b></div>
+      <div class="meta-chip">Dataset ref: <b>Lek Pharma, n=1,005 batches</b></div>
+    </div>
+  </div>
+
+  <!-- BELT -->
+  <div class="belt-shell">
+    <div class="belt-scroll">
+      <div class="belt-inner" id="belt-inner"></div>
+    </div>
+    <div class="ticker-shell">
+      <div class="ticker-track" id="ticker-track"></div>
+    </div>
+  </div>
+  <div class="hint">click any station for live detail →</div>
+
+  <!-- AI BANNER -->
+  <div class="ai-banner" id="ai-banner">
+    <div class="ai-banner-icon">◆</div>
+    <div class="ai-banner-body">
+      <span class="ai-banner-tag">AI Insight</span>
+      <span id="ai-banner-text">Initializing telemetry stream…</span>
+    </div>
+  </div>
+
+  <!-- PANELS -->
+  <div class="grid3">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-dot" style="background:var(--red)"></div>
+        <div class="panel-title">AI Alerts &amp; Interventions</div>
+        <div class="panel-sub" id="alert-count-sub">0 active</div>
+      </div>
+      <div id="alerts-list"><div class="empty-note">No active flags. All 11 monitored stations within normal operating range.</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-dot" style="background:var(--teal)"></div>
+        <div class="panel-title">Process Snapshot</div>
+        <div class="panel-sub">real-time</div>
+      </div>
+      <div id="snapshot-list"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-dot" style="background:var(--amber)"></div>
+        <div class="panel-title">Dataset Reference</div>
+        <div class="panel-sub">Lek Pharma, 2018–2021</div>
+      </div>
+      <div class="kv-row"><div class="kv-k">Batches analyzed</div><div class="kv-v">1,005</div></div>
+      <div class="kv-row"><div class="kv-k">Batch yield (mean ± SD)</div><div class="kv-v">98.3% ± 1.1%</div></div>
+      <div class="kv-row"><div class="kv-k">Drug release (mean ± SD)</div><div class="kv-v">90.6% ± 3.4%</div></div>
+      <div class="kv-row"><div class="kv-k">API impurities (mean)</div><div class="kv-v">0.2%</div></div>
+      <div class="kv-row"><div class="kv-k">API particle D50 (mean)</div><div class="kv-v">39.7µm</div></div>
+      <div class="kv-row"><div class="kv-k">Operator error rate</div><div class="kv-v">3.5–3.8%</div></div>
+      <div class="kv-row"><div class="kv-k">OOS investigation cost</div><div class="kv-v">$25K–$55K</div></div>
+      <div class="empty-note" style="margin-top:8px">Source: Žagar &amp; Mihelič, <i>Scientific Data</i> (2022); BioPlan Associates Annual Report.</div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <b>About this demo:</b> station thresholds and baselines are derived from a published dataset of 1,005 real pharmaceutical production batches (Lek Pharmaceuticals / Sandoz, via Figshare) and BioPlan Associates' biopharma industry benchmarking survey. Values shown are a live simulated random walk anchored to those real statistical baselines — not a connection to an actual production system. AI intervention text is illustrative of the kind of analysis a real system could surface at each step.
+  </div>
+</div>
+
+<div class="scrim" id="scrim" onclick="closeDrawer(event)">
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div>
+        <div class="drawer-eyebrow" id="d-eyebrow"></div>
+        <div class="drawer-title" id="d-title"></div>
+      </div>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body" id="d-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-icon" id="toast-icon">◆</div>
+  <div class="toast-body" id="toast-body"></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   STAGE DEFINITIONS
+   15 stages from the PAS-X MES workflow. Stages 1–11 carry a live `sim`
+   metric anchored to real published data (Lek Pharmaceuticals 1,005-batch
+   dataset + BioPlan Associates industry survey + USP <41>). Stages 12–15
+   represent steps the current batch hasn't reached yet, shown as pending.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const STAGES = [
+{ id:1, icon:'📋', name:'Order Receipt', full:'Production Order Receipt from ERP',
+  sim:{ metric:'Projected Batch Yield', unit:'%', dec:1, value:98.3, mean:98.3, sd:1.1, min:88, max:101,
+        warnAt:96, alertAt:93, inverted:true,
+        base:'Lek Pharmaceuticals dataset: mean batch yield 98.3% (SD 1.1%) across 1,005 real production batches; recorded minimum 88.0%.',
+        ok:v=>`Projected yield holding at ${v}%, in line with the 1,005-batch dataset mean of 98.3% (SD ±1.1%). Resource allocation on schedule, no campaign conflicts detected.`,
+        warn:v=>`Projected yield has slipped to ${v}%, more than 2 standard deviations below the dataset mean (98.3%). AI recommends reviewing equipment assignment and material lot continuity before batch start.`,
+        alert:v=>`Yield projection critical at ${v}% — approaching the dataset's historical minimum (88.0%). AI flags this batch for schedule hold pending root-cause review of upstream planning inputs.`,
+        action:'AI suggests: re-sequence campaign, verify equipment calendar, escalate to production planner.' } },
+
+{ id:2, icon:'🔐', name:'Operator Auth', full:'Operator Authentication & Qualification',
+  sim:{ metric:'Operator Error Risk', unit:'%', dec:1, value:3.6, mean:3.6, sd:0.6, min:0.5, max:14,
+        warnAt:6.5, alertAt:9.5, inverted:false,
+        base:'BioPlan Associates 22nd Annual Report: operator error accounts for 3.5% of commercial-scale and 3.8% of clinical-scale batch failures industry-wide.',
+        ok:v=>`Operator error risk at ${v}%, tracking the BioPlan industry baseline of 3.5–3.8%. Qualification and shift coverage records show no gaps.`,
+        warn:v=>`Operator error risk elevated to ${v}%, above the industry baseline. Independent research attributes roughly 80% of process deviations to human error — AI recommends a qualification and fatigue review for the current shift.`,
+        alert:v=>`Operator error risk critical at ${v}%. This is well outside the industry baseline (3.5–3.8%). AI recommends pausing task assignment for re-verification of training records before continuing.`,
+        action:'AI suggests: pull qualification record, confirm shift handover notes, consider operator rotation.' } },
+
+{ id:3, icon:'📖', name:'Work Instructions', full:'Electronic Work Instructions',
+  sim:{ metric:'Startup Tablet Rejects', unit:'', dec:0, value:14, mean:14, sd:6, min:0, max:120,
+        warnAt:45, alertAt:75, inverted:false,
+        base:'Lek dataset field "startup_waste" — rejected tablets during press start-up. Dataset notes elevated values indicate "more challenging material properties or potentially an inexperienced operator."',
+        ok:v=>`Startup reject count at ${v} tablets — low waste indicates operators are following work instructions accurately and press setup is going smoothly.`,
+        warn:v=>`Startup reject count rising to ${v}. Per the Lek dataset's own documentation, this pattern correlates with either difficult incoming material or an operator needing more support. AI copilot is surfacing the relevant SOP section proactively.`,
+        alert:v=>`Startup reject count critical at ${v} tablets. AI recommends pausing for a guided walkthrough of press setup parameters — this level of waste has historically preceded downstream quality issues in the dataset.`,
+        action:'AI suggests: trigger copilot walkthrough, flag SOP section 4.2 (press setup), notify shift supervisor.' } },
+
+{ id:4, icon:'🧪', name:'Material Verification', full:'Material Verification & Consumption Control',
+  sim:{ metric:'API Particle Size D50', unit:'µm', dec:1, value:39.7, mean:39.7, sd:11.7, min:8.3, max:67,
+        warnAt:56, alertAt:63, inverted:false,
+        base:'Lek dataset: API particle size D50 mean 39.7µm, SD 11.7µm, range 8.3–67.0µm across 1,005 batches.',
+        ok:v=>`Incoming API particle size D50 at ${v}µm — within the normal dataset range (mean 39.7µm ±11.7). Material verified, blend uniformity expected to be optimal.`,
+        warn:v=>`API particle size D50 elevated at ${v}µm, in the upper range of the 1,005-batch dataset. Coarser particles are associated with blend uniformity drift — AI flags for in-process monitoring during compression.`,
+        alert:v=>`API particle size D50 critical at ${v}µm — approaching the dataset's recorded maximum (67.0µm). AI recommends quarantine and re-sampling before this lot is released to dispensing.`,
+        action:'AI suggests: re-sample API lot, cross-check certificate of analysis, hold pending QA sign-off.' } },
+
+{ id:5, icon:'⚖️', name:'Dispensing & Weighing', full:'Dispensing & Weighing Operations',
+  sim:{ metric:'Tablet Weight RSD', unit:'%', dec:2, value:0.45, mean:0.45, sd:0.18, min:0.05, max:2.5,
+        warnAt:1.15, alertAt:1.7, inverted:false,
+        base:'Lek dataset field "tbl_rsd_weight" — tablet core weight relative standard deviation, measured automatically during compression. USP <41> requires balance repeatability within 0.10%.',
+        ok:v=>`Tablet weight RSD at ${v}% — process in control. USP &lt;41&gt; requires 0.10% balance repeatability; this in-process figure tracks normally against the Lek dataset baseline.`,
+        warn:v=>`Tablet weight RSD rising to ${v}%. The Lek dataset links this rise to fill-depth variability or early blend segregation. AI recommends checking the press fill-depth sensor before the next sampling interval.`,
+        alert:v=>`Weight RSD critical at ${v}%. AI traces this pattern in the dataset to fill-depth drift — recommends an immediate press stop for fill-depth recalibration to avoid an out-of-spec dispensing run.`,
+        action:'AI suggests: pause press, recalibrate fill-depth sensor, re-verify last 30 minutes of output.' } },
+
+{ id:6, icon:'🔧', name:'Equipment Readiness', full:'Equipment Verification & Readiness Checks',
+  sim:{ metric:'Tablet Ejection Force', unit:'N', dec:0, value:185, mean:185, sd:55, min:50, max:700,
+        warnAt:410, alertAt:560, inverted:false,
+        base:'Lek dataset field "ejection_mean" — rising ejection force signals increasing friction, i.e. tablets sticking to tooling.',
+        ok:v=>`Ejection force nominal at ${v}N. Tooling friction within expected range — no sticking risk indicated.`,
+        warn:v=>`Ejection force rising to ${v}N. The Lek dataset documents this as an early sign of tablet sticking on tooling. AI recommends a tooling inspection before the next shift change.`,
+        alert:v=>`Ejection force critical at ${v}N. High probability of tooling sticking and tablet defects. AI recommends an immediate equipment hold for tooling inspection — industry data shows pharma OEE averages below 50%, and unaddressed ejection issues are a common contributor.`,
+        action:'AI suggests: schedule tooling inspection, check lubricant application, review punch wear log.' } },
+
+{ id:7, icon:'⚙️', name:'Manufacturing Execution', full:'Manufacturing Execution & Process Monitoring',
+  sim:{ metric:'Compression Force SREL', unit:'%', dec:2, value:2.3, mean:2.3, sd:1.0, min:0.5, max:15,
+        warnAt:6.5, alertAt:10, inverted:false,
+        base:'Lek dataset field "SREL_production_mean" — main compression force standard relative deviation; the dataset documentation treats values above 15% as abnormal for this specific product.',
+        ok:v=>`Compression SREL at ${v}% — blend behaving uniformly. Drug release is tracking the dataset baseline (mean 90.6%).`,
+        warn:v=>`Compression SREL rising to ${v}%. This metric directly reflects batch-to-batch compression force variability — the dataset links elevated SREL to lower drug release outcomes. AI is monitoring downstream IPC closely.`,
+        alert:v=>`Compression SREL critical at ${v}%, approaching the dataset's documented abnormal threshold (15%). AI recommends an immediate process hold — high SREL strongly correlates with both startup waste and reduced drug release in the historical data.`,
+        action:'AI suggests: hold compression, inspect blend uniformity, re-check pre-compression force settings.' } },
+
+{ id:8, icon:'✍️', name:'E-Signatures', full:'Electronic Signature Management',
+  sim:{ metric:'Press Speed Change Rate', unit:'', dec:0, value:4, mean:4, sd:2, min:0, max:40,
+        warnAt:17, alertAt:28, inverted:false,
+        base:'Lek dataset field "tbl_speed_change" — number of tablet press speed changes, normalized by batch size. The dataset notes frequent changes indicate process interruptions.',
+        ok:v=>`Press speed changes at ${v} (normalized) — stable run, minimal interruptions. Signature workflow is on the critical path with no delay risk.`,
+        warn:v=>`Press speed changes elevated to ${v}. Frequent adjustments typically generate additional deviation documentation, which can create a signature backlog. AI is pre-populating audit trail context to reduce signatory friction.`,
+        alert:v=>`Press speed change rate critical at ${v}. This level of instability in the dataset is associated with significant documentation burden. AI flags a likely signature bottleneck forming on this batch.`,
+        action:'AI suggests: pre-fill signature context, notify pending signatories, surface interruption log for review.' } },
+
+{ id:9, icon:'🔬', name:'In-Process Testing', full:'In-Process Quality Testing',
+  sim:{ metric:'Predicted Drug Release', unit:'%', dec:1, value:90.6, mean:90.6, sd:3.4, min:74, max:103,
+        warnAt:84, alertAt:80, inverted:true,
+        base:'Lek dataset: drug release (dissolution) average mean 90.6% (SD 3.4%), recorded minimum 82.5%; dissolution_min mean 85.6%, recorded minimum 74.0% across 1,005 batches.',
+        ok:v=>`Predicted drug release at ${v}% — tracking the dataset mean of 90.6%. High confidence of passing in-process testing.`,
+        warn:v=>`Predicted drug release dropping to ${v}%, approaching the dataset's dissolution_min mean (85.6%). AI is cross-referencing current compression SREL as the likely driver and flags for closer IPC attention.`,
+        alert:v=>`Predicted drug release at ${v}%, near the typical 80% specification floor for immediate-release tablets (ICH Q6A reference). AI recommends holding the batch for laboratory confirmation before proceeding.`,
+        action:'AI suggests: hold for lab confirmation, cross-check compression SREL trend, alert QA reviewer.' } },
+
+{ id:10, icon:'⚠️', name:'Deviation Mgmt', full:'Deviation Management',
+  sim:{ metric:'API Total Impurities', unit:'%', dec:2, value:0.20, mean:0.20, sd:0.06, min:0.10, max:0.6,
+        warnAt:0.36, alertAt:0.48, inverted:false,
+        base:'Lek dataset: API total impurities mean 0.2% (SD 0.15%), recorded range 0.1–0.5% across 1,005 batches. BioPlan: OOS investigation costs $25,000–$55,000 (Beth Junker, Merck R&D).',
+        ok:v=>`API total impurities at ${v}% — within the normal dataset range (mean 0.2%). No deviation risk indicated.`,
+        warn:v=>`API impurities trending upward to ${v}%, in the upper range of the 1,005-batch dataset (max recorded: 0.5%). AI is pre-drafting a deviation record in case this continues to climb.`,
+        alert:v=>`API impurities critical at ${v}% — at the dataset's historical maximum. AI has auto-generated a deviation investigation draft with similarity search against past impurity events. Industry data: OOS investigations average $25,000–$55,000 per event.`,
+        action:'AI suggests: open deviation record, run similarity search against historical impurity events, notify QA.' } },
+
+{ id:11, icon:'🔩', name:'Asset Intelligence', full:'Equipment Data Collection & Asset Intelligence',
+  sim:{ metric:'Bottom Punch Stiffness', unit:'N', dec:0, value:320, mean:320, sd:95, min:100, max:900,
+        warnAt:600, alertAt:760, inverted:false,
+        base:'Lek dataset field "stiffness_mean" — the documentation notes that "when the stiffness limit is reached, the press is stopped with suitable diagnosis," i.e. an automatic equipment-protection trigger.',
+        ok:v=>`Bottom punch stiffness at ${v}N — nominal. No mechanical stress indicators present.`,
+        warn:v=>`Bottom punch stiffness rising to ${v}N. The Lek dataset documents this is a leading indicator the press itself monitors for automatic shutdown. AI recommends scheduling preventive maintenance ahead of the next campaign.`,
+        alert:v=>`Bottom punch stiffness critical at ${v}N, approaching the threshold at which the press would automatically halt for diagnostics. AI recommends an immediate maintenance window — pharma equipment availability already averages below 50% industry-wide (SCW.ai benchmarking).`,
+        action:'AI suggests: schedule preventive maintenance, inspect punch assembly, log stiffness trend for asset history.' } },
+
+{ id:12, icon:'📊', name:'Batch Completion', full:'Batch Completion & Data Consolidation', pending:true,
+  pendingMsg:'Not yet reached in this batch. Once triggered, AI will auto-consolidate all manufacturing data and benchmark against the 1,005-batch historical dataset.' },
+{ id:13, icon:'📄', name:'Electronic Batch Record', full:'Electronic Batch Record Generation', pending:true,
+  pendingMsg:'Not yet reached. AI will auto-populate the EBR and flag anomalies against dataset baselines. Industry data: digital batch records cut manual entry errors from 12–18% to under 1%.' },
+{ id:14, icon:'🔍', name:'Review by Exception', full:'Review by Exception (RBE)', pending:true,
+  pendingMsg:'Not yet reached. Industry data: AI-assisted review by exception can reduce a 150-page batch record review to a 3-page exception report (EY published analysis).' },
+{ id:15, icon:'✅', name:'Quality Release', full:'Quality Review & Batch Release', pending:true,
+  pendingMsg:'Not yet reached. AI release copilot will summarize deviations and flag missing documentation. Industry data: best-in-class Right-First-Time rate is 85–95% vs 60–70% for paper-based systems (GMP Pros benchmarking).' },
+];
+
+const SIM_STAGES = STAGES.filter(s => s.sim);
+SIM_STAGES.forEach(s => { s.sim.history = Array(20).fill(s.sim.value); s.sim.state = 'ok'; });
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SIMULATION ENGINE — the single source of truth.
+   Every view (belt, drawer, ticker, alerts, banner, header) re-renders
+   from STAGES on every tick, so nothing can desync.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const activeAlerts = []; // ordered list of {stageId,key,tag,tagCls,text,time}
+
+function classify(sim){
+  if(sim.inverted){
+    if(sim.value <= sim.alertAt) return 'alert';
+    if(sim.value <= sim.warnAt) return 'warn';
+    return 'ok';
+  }else{
+    if(sim.value >= sim.alertAt) return 'alert';
+    if(sim.value >= sim.warnAt) return 'warn';
+    return 'ok';
+  }
+}
+
+function tick(){
+  SIM_STAGES.forEach(stage => {
+    const s = stage.sim;
+    const prevState = s.state;
+
+    // mean-reverting random walk, sized to the real dataset's standard deviation
+    const pull = (s.mean - s.value) * 0.10;
+    const noise = (Math.random()-0.5) * (s.sd*0.9);
+    s.value = Math.min(s.max, Math.max(s.min, s.value + pull + noise));
+
+    // occasional spike toward the "bad" direction
+    if(Math.random() < 0.05){
+      const dir = s.inverted ? -1 : 1;
+      s.value = Math.min(s.max, Math.max(s.min, s.value + dir * s.sd * (1.2+Math.random()*1.8)));
+    }
+    // recovery nudge — guarantees flagged stages don't stay stuck
+    if(s.state !== 'ok' && Math.random() < 0.22){
+      const dir = s.inverted ? 1 : -1;
+      s.value = Math.min(s.max, Math.max(s.min, s.value + dir * s.sd * (0.8+Math.random()*1.4)));
+    }
+
+    s.history.push(s.value);
+    if(s.history.length > 20) s.history.shift();
+
+    s.state = classify(s);
+    if(s.state !== prevState) onStateChange(stage, prevState, s.state);
+  });
+
+  renderBelt();
+  renderTicker();
+  renderBanner();
+  renderHeader();
+  renderSnapshot();
+  if(openStageId) refreshDrawerIfOpen();
+}
+
+function fmt(stage){ const s=stage.sim; return s.value.toFixed(s.dec); }
+
+function onStateChange(stage, prev, next){
+  const s = stage.sim;
+  const now = new Date();
+  const t = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const idx = activeAlerts.findIndex(a=>a.stageId===stage.id);
+  if(idx>-1) activeAlerts.splice(idx,1);
+
+  if(next==='alert'){
+    activeAlerts.unshift({stageId:stage.id, tag:'CRITICAL', tagCls:'tag-alert', text:s.alert(fmt(stage)), time:`${t} · ${stage.full}`});
+    toast('▲','AI Intervention — '+stage.name, s.action);
+  }else if(next==='warn'){
+    activeAlerts.unshift({stageId:stage.id, tag:'WARNING', tagCls:'tag-warn', text:s.warn(fmt(stage)), time:`${t} · ${stage.full}`});
+    if(prev==='ok') toast('●','AI Flagged — '+stage.name, s.action);
+  }else if(next==='ok' && (prev==='warn'||prev==='alert')){
+    activeAlerts.unshift({stageId:stage.id, tag:'RESOLVED', tagCls:'tag-resolved', text:`${s.metric} returned to normal range (${fmt(stage)}${s.unit}). AI closed the flag automatically — no further action required.`, time:`${t} · ${stage.full}`});
+    toast('✓','Resolved — '+stage.name, `${s.metric} back within normal range.`);
+  }
+  while(activeAlerts.length>7) activeAlerts.pop();
+  renderAlerts();
+}
+
+/* ═══════════════════════ RENDER: BELT ═══════════════════════ */
+const beltInner = document.getElementById('belt-inner');
+
+function buildBeltOnce(){
+  let html = `<div class="flow-end"><div class="flow-end-box in">📦</div><div class="flow-end-lbl">Raw<br>Material</div></div>`;
+  html += `<div class="conn"></div>`;
+  STAGES.forEach((stage,i)=>{
+    html += `<div class="station" data-id="${stage.id}" onclick="openDrawer(${stage.id})">
+      <div class="station-card" id="card-${stage.id}">
+        <div class="station-icon">${stage.icon}</div>
+        <div class="station-num">S${stage.id}</div>
+        <div class="station-reading" id="read-${stage.id}">${stage.pending?'—':''}</div>
+        <div class="ai-chip muted" id="chip-${stage.id}">${stage.pending?'·':'◆'}</div>
+      </div>
+      <div class="station-label">${stage.name}</div>
+      <div class="station-mini" id="mini-${stage.id}"></div>
+    </div>`;
+    if(i<STAGES.length-1) html += `<div class="conn"></div>`;
+  });
+  html += `<div class="conn"></div><div class="flow-end"><div class="flow-end-box out">💊</div><div class="flow-end-lbl">Finished<br>Product</div></div>`;
+  // moving goods overlay (decorative)
+  html += `<div class="goods" style="position:absolute">📦</div><div class="goods" style="position:absolute">📦</div><div class="goods" style="position:absolute">📦</div>`;
+  beltInner.innerHTML = html;
+}
+buildBeltOnce();
+
+function renderBelt(){
+  STAGES.forEach(stage=>{
+    const card = document.getElementById(`card-${stage.id}`);
+    const chip = document.getElementById(`chip-${stage.id}`);
+    const read = document.getElementById(`read-${stage.id}`);
+    const mini = document.getElementById(`mini-${stage.id}`);
+    if(!card) return;
+
+    if(stage.pending){
+      card.className = 'station-card s-pending';
+      return;
+    }
+    const s = stage.sim;
+    const stateCls = s.state==='alert' ? 's-alert' : s.state==='warn' ? 's-warn' : 's-ok';
+    card.className = 'station-card ' + stateCls;
+    read.textContent = `${fmt(stage)}${s.unit}`;
+
+    chip.className = 'ai-chip' + (s.state==='alert'?' alert':s.state==='warn'?' warn':'');
+    chip.textContent = s.state==='alert' ? '!' : s.state==='warn' ? '●' : '◆';
+
+    // mini sparkline from history
+    const hist = s.history.slice(-12);
+    const hi = Math.max(...hist), lo = Math.min(...hist);
+    mini.innerHTML = hist.map(v=>{
+      const h = Math.round(((v-lo)/((hi-lo)||1))*100) || 8;
+      const bad = s.inverted ? v<=s.warnAt : v>=s.warnAt;
+      const crit = s.inverted ? v<=s.alertAt : v>=s.alertAt;
+      const cls = crit ? 'bad' : bad ? 'warn-b' : '';
+      return `<div class="smini-bar ${cls}" style="height:${h}%"></div>`;
+    }).join('');
+  });
+}
+
+/* ═══════════════════════ RENDER: TICKER ═══════════════════════ */
+function renderTicker(){
+  const items = SIM_STAGES.map(stage=>{
+    const s = stage.sim;
+    const dotCls = s.state==='alert'?'alert':s.state==='warn'?'warn':'';
+    return `<span class="ticker-item"><span class="ticker-dot ${dotCls}"></span>S${stage.id} ${stage.name}: <b>${fmt(stage)}${s.unit}</b></span>`;
+  }).join('');
+  document.getElementById('ticker-track').innerHTML = items + items; // doubled for seamless loop
+}
+
+/* ═══════════════════════ RENDER: AI BANNER ═══════════════════════ */
+function renderBanner(){
+  const banner = document.getElementById('ai-banner');
+  const text = document.getElementById('ai-banner-text');
+  const worst = SIM_STAGES.find(s=>s.sim.state==='alert') || SIM_STAGES.find(s=>s.sim.state==='warn');
+  if(worst){
+    const s = worst.sim;
+    banner.className = 'ai-banner ' + s.state;
+    text.innerHTML = `<b>Stage ${worst.id} — ${worst.full}:</b> ${s.state==='alert'?s.alert(fmt(worst)):s.warn(fmt(worst))}`;
+  }else{
+    banner.className = 'ai-banner';
+    text.innerHTML = `All 11 monitored stations within normal operating range. <b>Projected batch yield 98%+</b>, tracking the 1,005-batch dataset baseline.`;
+  }
+}
+
+/* ═══════════════════════ RENDER: HEADER ═══════════════════════ */
+function renderHeader(){
+  const yieldStage = STAGES.find(s=>s.id===1);
+  const releaseStage = STAGES.find(s=>s.id===9);
+  document.getElementById('hdr-yield').textContent = fmt(yieldStage)+'%';
+  document.getElementById('hdr-yield').style.color = yieldStage.sim.state==='ok' ? 'var(--teal)' : yieldStage.sim.state==='warn' ? 'var(--amber)' : 'var(--red)';
+  document.getElementById('hdr-release').textContent = fmt(releaseStage)+'%';
+  document.getElementById('hdr-release').style.color = releaseStage.sim.state==='ok' ? 'var(--teal)' : releaseStage.sim.state==='warn' ? 'var(--amber)' : 'var(--red)';
+
+  const flags = SIM_STAGES.filter(s=>s.sim.state!=='ok').length;
+  const flagEl = document.getElementById('hdr-flags');
+  flagEl.textContent = flags;
+  flagEl.style.color = flags===0 ? 'var(--teal)' : SIM_STAGES.some(s=>s.sim.state==='alert') ? 'var(--red)' : 'var(--amber)';
+}
+
+/* ═══════════════════════ RENDER: ALERTS PANEL ═══════════════════════ */
+function renderAlerts(){
+  const list = document.getElementById('alerts-list');
+  const sub = document.getElementById('alert-count-sub');
+  const activeCount = SIM_STAGES.filter(s=>s.sim.state!=='ok').length;
+  sub.textContent = `${activeCount} active`;
+  if(activeAlerts.length===0){
+    list.innerHTML = `<div class="empty-note">No active flags. All 11 monitored stations within normal operating range.</div>`;
+    return;
+  }
+  list.innerHTML = activeAlerts.map(a=>`
+    <div class="alert-row">
+      <div class="alert-tag ${a.tagCls}">${a.tag}</div>
+      <div><div class="alert-text">${a.text}</div><div class="alert-time">${a.time}</div></div>
+    </div>`).join('');
+}
+
+/* ═══════════════════════ RENDER: SNAPSHOT PANEL ═══════════════════════ */
+function renderSnapshot(){
+  const list = document.getElementById('snapshot-list');
+  list.innerHTML = SIM_STAGES.map(stage=>{
+    const s = stage.sim;
+    const cls = s.state==='alert'?'v-red':s.state==='warn'?'v-amber':'v-teal';
+    return `<div class="kv-row"><div class="kv-k">${stage.name}</div><div class="kv-v ${cls}">${fmt(stage)}${s.unit}</div></div>`;
+  }).join('');
+}
+
+/* ═══════════════════════ DRAWER ═══════════════════════ */
+let openStageId = null;
+
+function openDrawer(id){
+  openStageId = id;
+  renderDrawer(id);
+  document.getElementById('scrim').classList.add('open');
+}
+function closeDrawer(e){
+  if(!e || e.target.id==='scrim'){
+    document.getElementById('scrim').classList.remove('open');
+    openStageId = null;
+  }
+}
+function refreshDrawerIfOpen(){ if(openStageId) renderDrawer(openStageId); }
+
+function renderDrawer(id){
+  const stage = STAGES.find(s=>s.id===id);
+  document.getElementById('d-eyebrow').textContent = `STAGE ${stage.id} · ${stage.pending?'NOT YET REACHED':'LIVE MONITORING'}`;
+  document.getElementById('d-title').textContent = stage.full;
+
+  let html = '';
+
+  if(stage.pending){
+    html += `<div class="status-box ok" style="background:var(--panel-2);border-color:var(--line)">
+      <div class="status-head"><span class="status-pill" style="background:var(--ink-mute);color:#0B1120">PENDING</span></div>
+      <div class="status-msg">${stage.pendingMsg}</div>
+    </div>`;
+    document.getElementById('d-body').innerHTML = html;
+    return;
+  }
+
+  const s = stage.sim;
+  const stateLabel = s.state==='alert'?'CRITICAL':s.state==='warn'?'WARNING':'NORMAL';
+  const msg = s.state==='alert' ? s.alert(fmt(stage)) : s.state==='warn' ? s.warn(fmt(stage)) : s.ok(fmt(stage));
+  const rangeLabel = s.inverted
+    ? `Healthy above ${s.warnAt}${s.unit} · Critical at/below ${s.alertAt}${s.unit}`
+    : `Healthy below ${s.warnAt}${s.unit} · Critical at/above ${s.alertAt}${s.unit}`;
+
+  // status box
+  html += `<div class="d-section">
+    <div class="status-box ${s.state}">
+      <div class="status-head">
+        <span class="status-pill">${stateLabel}</span>
+        <span class="status-metric">${s.metric}</span>
+      </div>
+      <div class="status-metric">Current: <b style="color:var(--ink)">${fmt(stage)}${s.unit}</b> &nbsp;·&nbsp; ${rangeLabel}</div>
+      <div class="status-msg">${msg}</div>
+    </div>
+    <div class="action-box"><span class="a-label">Recommended Action</span>${s.action}</div>
+  </div>`;
+
+  // live trend chart from real rolling history
+  const hist = s.history;
+  const hi = Math.max(...hist, s.warnAt, s.alertAt), lo = Math.min(...hist, s.min);
+  html += `<div class="d-section">
+    <div class="d-section-title">Live Trend — last ${hist.length} readings</div>
+    <div class="dchart">${hist.map(v=>{
+      const h = Math.round(((v-lo)/((hi-lo)||1))*100) || 4;
+      const crit = s.inverted ? v<=s.alertAt : v>=s.alertAt;
+      const warnB = s.inverted ? v<=s.warnAt : v>=s.warnAt;
+      const cls = crit?'bad-b':warnB?'warn-b2':'ok-b';
+      return `<div class="dchart-bar ${cls}" style="height:${h}%"></div>`;
+    }).join('')}</div>
+    <div class="chart-legend">
+      <span><span class="leg-dot" style="background:var(--teal)"></span>normal</span>
+      <span><span class="leg-dot" style="background:var(--amber)"></span>warning</span>
+      <span><span class="leg-dot" style="background:var(--red)"></span>critical</span>
+    </div>
+  </div>`;
+
+  // live data table
+  const recent4 = hist.slice(-4).reduce((a,b)=>a+b,0)/Math.min(4,hist.length);
+  html += `<div class="d-section">
+    <div class="d-section-title">Live Parameters</div>
+    <table class="dtable">
+      <tr><td>Current reading</td><td>${fmt(stage)}${s.unit}</td></tr>
+      <tr><td>Dataset baseline (mean)</td><td>${s.mean.toFixed(s.dec)}${s.unit}</td></tr>
+      <tr><td>Dataset std. deviation</td><td>±${s.sd.toFixed(s.dec)}${s.unit}</td></tr>
+      <tr><td>Recent 4-reading average</td><td>${recent4.toFixed(s.dec)}${s.unit}</td></tr>
+      <tr><td>Warn threshold</td><td>${s.warnAt}${s.unit}</td></tr>
+      <tr><td>Critical threshold</td><td>${s.alertAt}${s.unit}</td></tr>
+    </table>
+  </div>`;
+
+  // distance-to-threshold gauge
+  const range = s.inverted ? (s.mean - s.alertAt) : (s.alertAt - s.mean);
+  const progress = s.inverted
+    ? Math.min(100,Math.max(0, ((s.mean - s.value)/range)*100))
+    : Math.min(100,Math.max(0, ((s.value - s.mean)/range)*100));
+  const gcls = s.state==='alert'?'var(--red)':s.state==='warn'?'var(--amber)':'var(--teal)';
+  html += `<div class="d-section">
+    <div class="d-section-title">Distance to Critical Threshold</div>
+    <div class="dgauge-row">
+      <div class="dgauge-label">Risk progression</div>
+      <div class="dgauge-bar"><div class="dgauge-fill" style="width:${progress.toFixed(0)}%;background:${gcls}"></div></div>
+      <div class="dgauge-pct">${progress.toFixed(0)}%</div>
+    </div>
+  </div>`;
+
+  // source note
+  html += `<div class="note-box"><b>Data source:</b> ${s.base}</div>`;
+
+  html += `<div class="drawer-actions">
+    <button class="dbtn dbtn-primary" onclick="ackAction(${stage.id})">Acknowledge &amp; Action</button>
+    <button class="dbtn dbtn-secondary" onclick="closeDrawer()">Close</button>
+  </div>`;
+
+  document.getElementById('d-body').innerHTML = html;
+}
+
+function ackAction(id){
+  const stage = STAGES.find(s=>s.id===id);
+  closeDrawer();
+  toast('✓','Action logged — '+stage.name, stage.sim ? stage.sim.action : 'Acknowledged.');
+}
+
+/* ═══════════════════════ TOAST ═══════════════════════ */
+let toastTimer;
+function toast(icon,title,body){
+  const el = document.getElementById('toast');
+  document.getElementById('toast-icon').textContent = icon;
+  document.getElementById('toast-body').innerHTML = `<b>${title}</b>${body}`;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 4200);
+}
+
+/* ═══════════════════════ INIT ═══════════════════════ */
+renderBelt();
+renderTicker();
+renderBanner();
+renderHeader();
+renderSnapshot();
+renderAlerts();
+setInterval(tick, 4000);
+setTimeout(tick, 1000);
+</script>
+</body>
+</html>
