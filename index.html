@@ -275,20 +275,16 @@ footer {
 <!-- AMBIENT BACKGROUND SVG -->
 <div class="bg-canvas">
   <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-    <!-- pipeline flow lines -->
     <g stroke="#13D8B4" stroke-width="1" fill="none">
-      <!-- horizontal runs -->
       <line x1="0" y1="180" x2="1440" y2="180"/>
       <line x1="0" y1="420" x2="1440" y2="420"/>
       <line x1="0" y1="700" x2="1440" y2="700"/>
-      <!-- vertical drops connecting the runs -->
       <line x1="120" y1="0"   x2="120" y2="900"/>
       <line x1="360" y1="0"   x2="360" y2="900"/>
       <line x1="600" y1="0"   x2="600" y2="900"/>
       <line x1="840" y1="0"   x2="840" y2="900"/>
       <line x1="1080" y1="0"  x2="1080" y2="900"/>
       <line x1="1320" y1="0"  x2="1320" y2="900"/>
-      <!-- junction dots -->
       <circle cx="120"  cy="180" r="4"/>
       <circle cx="360"  cy="180" r="4"/>
       <circle cx="600"  cy="180" r="4"/>
@@ -298,7 +294,6 @@ footer {
       <circle cx="120"  cy="700" r="4"/>
       <circle cx="600"  cy="420" r="4"/>
     </g>
-    <!-- subtle node squares at intersections -->
     <g fill="none" stroke="#F2A93B" stroke-width="0.8">
       <rect x="112" y="172" width="16" height="16" rx="2"/>
       <rect x="592" y="412" width="16" height="16" rx="2"/>
@@ -348,6 +343,9 @@ footer {
   <button class="filter-btn" data-filter="quality" onclick="filter(this,'quality')">Quality</button>
   <button class="filter-btn" data-filter="equipment" onclick="filter(this,'equipment')">Equipment</button>
   <button class="filter-btn" data-filter="batch-record" onclick="filter(this,'batch-record')">Batch Records</button>
+  <button class="filter-btn" data-filter="personnel" onclick="filter(this,'personnel')">Personnel</button>
+  <button class="filter-btn" data-filter="scheduling" onclick="filter(this,'scheduling')">Scheduling</button>
+  <button class="filter-btn" data-filter="maintenance" onclick="filter(this,'maintenance')">Maintenance</button>
 </div>
 
 <!-- GRID -->
@@ -392,6 +390,228 @@ footer {
       </div>
     </a>
 
+    <!-- TILE 2 — PERSONNEL -->
+    <a class="tile" href="personnel-demo.html" data-cats="personnel manufacturing">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(139,124,248,0.1);border:1px solid rgba(139,124,248,0.25)">👷</div>
+        <div class="tile-badges">
+          <span class="badge badge-live">● Live</span>
+          <span class="badge badge-cat purple">Personnel</span>
+        </div>
+      </div>
+      <div class="tile-name">Personnel Intelligence — Workforce View</div>
+      <div class="tile-desc">
+        Real-time view of operator assignments, qualifications, fatigue scores, and GMP training status across all active production areas. AI flags certification gaps, flags overloaded operators before errors occur, and suggests reallocation based on skill-to-task fit.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">42</div>
+          <div class="tile-meta-lbl">Operators tracked</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">8</div>
+          <div class="tile-meta-lbl">Skill categories</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">Live</div>
+          <div class="tile-meta-lbl">Fatigue index</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">GMP</div>
+          <div class="tile-meta-lbl">Compliance checks</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">ICH Q10 · FDA 21 CFR Part 211<br>Industry workforce benchmarks</div>
+        <span class="launch-btn">Launch →</span>
+      </div>
+    </a>
+
+    <!-- TILE 3 — SHIFT MANAGEMENT -->
+    <a class="tile" href="shift-management-demo.html" data-cats="personnel scheduling manufacturing">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(242,169,59,0.1);border:1px solid rgba(242,169,59,0.25)">🕐</div>
+        <div class="tile-badges">
+          <span class="badge badge-live">● Live</span>
+          <span class="badge badge-cat">Scheduling</span>
+        </div>
+      </div>
+      <div class="tile-name">Shift Management — Handover & Coverage</div>
+      <div class="tile-desc">
+        Tracks shift schedules, handover completeness, and coverage gaps across three production shifts. AI detects incomplete handover documentation, unattended critical processes, and overtime risk — generating structured shift briefings and escalation alerts automatically.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">3</div>
+          <div class="tile-meta-lbl">Active shifts</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">24/7</div>
+          <div class="tile-meta-lbl">Coverage model</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">Auto</div>
+          <div class="tile-meta-lbl">Briefing gen</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">≤2 min</div>
+          <div class="tile-meta-lbl">Alert latency</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">EU GMP Annex 15 · ISPE GAMP 5<br>Pharma shift ops benchmarks</div>
+        <span class="launch-btn">Launch →</span>
+      </div>
+    </a>
+
+    <!-- TILE 4 — MATERIAL LOT TRACKER -->
+    <a class="tile" href="material-lot-tracker-demo.html" data-cats="manufacturing quality batch-record">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(232,84,107,0.1);border:1px solid rgba(232,84,107,0.25)">📦</div>
+        <div class="tile-badges">
+          <span class="badge badge-live">● Live</span>
+          <span class="badge badge-cat red">Materials</span>
+        </div>
+      </div>
+      <div class="tile-name">Material Lot Tracker — Lineage & Status</div>
+      <div class="tile-desc">
+        End-to-end traceability for raw material lots from goods receipt through dispensing, blending, and in-process use. AI cross-references CoA data, expiry windows, quarantine flags, and retest dates — raising holds before out-of-spec material enters a batch.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">360+</div>
+          <div class="tile-meta-lbl">Lot records</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">CoA</div>
+          <div class="tile-meta-lbl">Auto-parsed</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">Full</div>
+          <div class="tile-meta-lbl">Chain of custody</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">ICH Q7</div>
+          <div class="tile-meta-lbl">Aligned standard</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">ICH Q7 · USP &lt;1&gt; · FDA 21 CFR 211<br>Lek Pharma raw material records</div>
+        <span class="launch-btn">Launch →</span>
+      </div>
+    </a>
+
+    <!-- TILE 5 — CONSTRAINT SCHEDULER -->
+    <a class="tile" href="constraint-scheduler-demo.html" data-cats="scheduling manufacturing equipment personnel">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(19,216,180,0.08);border:1px solid rgba(19,216,180,0.2)">🧩</div>
+        <div class="tile-badges">
+          <span class="badge badge-live">● Live</span>
+          <span class="badge badge-cat teal">Multi-constraint</span>
+        </div>
+      </div>
+      <div class="tile-name">Constraint Scheduler — People, Equipment & Materials</div>
+      <div class="tile-desc">
+        Unified scheduling engine that jointly optimises across material availability, equipment capacity, and qualified operator windows. AI detects constraint collisions in real time — identifying bottlenecks before they stall the line and proposing resequenced production plans with risk scores.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">3-axis</div>
+          <div class="tile-meta-lbl">Constraint model</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">Live</div>
+          <div class="tile-meta-lbl">Collision detect</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">AI</div>
+          <div class="tile-meta-lbl">Resequencing</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">Risk</div>
+          <div class="tile-meta-lbl">Scored plans</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">Theory of Constraints · MES scheduling<br>BioPlan capacity benchmarks</div>
+        <span class="launch-btn">Launch →</span>
+      </div>
+    </a>
+
+    <!-- TILE 6 — PREDICTIVE MAINTENANCE BOARD -->
+    <a class="tile" href="predictive-maintenance-demo.html" data-cats="equipment maintenance manufacturing">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(242,169,59,0.1);border:1px solid rgba(242,169,59,0.25)">🔧</div>
+        <div class="tile-badges">
+          <span class="badge badge-live">● Live</span>
+          <span class="badge badge-cat">Maintenance</span>
+        </div>
+      </div>
+      <div class="tile-name">Predictive Maintenance Board</div>
+      <div class="tile-desc">
+        Continuously monitors equipment health across production assets using vibration, temperature, process parameters, and historical operating trends. AI detects deteriorating conditions, predicts time to warning thresholds, prioritizes maintenance interventions, and recommends proactive maintenance actions before unplanned downtime occurs.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">4</div>
+          <div class="tile-meta-lbl">Machines monitored</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">20</div>
+          <div class="tile-meta-lbl">Live Signals</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">ETA</div>
+          <div class="tile-meta-lbl">Warn prediction</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">AI</div>
+          <div class="tile-meta-lbl">Maintenanace Advice</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">ISO 13374 · SEMI E10 OEE standard<br>BioPlan equipment reliability data</div>
+        <span class="launch-btn">Launch →</span>
+      </div>
+    </a>
+
+    <!-- TILE 7 — EQUIPMENT BREAKDOWN TRACKER -->
+    <a class="tile" href="equipment-breakdown-tracker-demo.html" data-cats="equipment maintenance manufacturing quality">
+      <div class="tile-top">
+        <div class="tile-icon" style="background:rgba(232,84,107,0.1);border:1px solid rgba(232,84,107,0.25)">⚠️</div>
+        <div class="tile-badges">
+          <span class="badge badge-live">● Live</span>
+          <span class="badge badge-cat red">Equipment</span>
+        </div>
+      </div>
+      <div class="tile-name">Equipment Breakdown Tracker</div>
+      <div class="tile-desc">
+        Live equipment reliability and operations event dashboard for monitoring breakdowns, alarms, maintenance, and production delays across the manufacturing line. AI analyses equipment health using MTBF, MTTR, and availability, predicts reliability risks, estimates production impact, and recommends maintenance actions to reduce downtime and improve fleet performance.
+      </div>
+      <div class="tile-meta">
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">Live</div>
+          <div class="tile-meta-lbl">Incident log</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">MTBF/MTTR</div>
+          <div class="tile-meta-lbl">Reliability KPIs</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">AI</div>
+          <div class="tile-meta-lbl">Risk Prediction</div>
+        </div>
+        <div class="tile-meta-item">
+          <div class="tile-meta-val">Fleet</div>
+          <div class="tile-meta-lbl">Equipment Health</div>
+        </div>
+      </div>
+      <div class="tile-footer">
+        <div class="tile-data-src">FDA 21 CFR 211.68 · EU GMP Annex 11<br>Lek Pharma downtime records</div>
+        <span class="launch-btn">Launch →</span>
+      </div>
+    </a>
+
   </div>
 </div>
 
@@ -399,7 +619,7 @@ footer {
 <footer>
   <div class="footer-left">
     <b>IntelliMFG AI Demo Suite</b><br>
-    Data sourced from Lek Pharmaceuticals (Žagar & Mihelič, Scientific Data 2022), BioPlan Associates Annual Reports, USP &lt;41&gt;, and published industry benchmarking studies. Demos are illustrative simulations, not connected to live production systems.
+    Data sourced from Lek Pharmaceuticals (Žagar &amp; Mihelič, Scientific Data 2022), BioPlan Associates Annual Reports, USP &lt;41&gt;, and published industry benchmarking studies. Demos are illustrative simulations, not connected to live production systems.
   </div>
   <div class="footer-right">v1.0 · 2025</div>
 </footer>
@@ -424,7 +644,9 @@ function filter(btn, cat) {
     manufacturing: 'Manufacturing demos',
     quality: 'Quality demos',
     equipment: 'Equipment demos',
-    'batch-record': 'Batch Record demos'
+    'batch-record': 'Batch Record demos',
+    personnel: 'Personnel demos',
+    scheduling: 'Scheduling demos'
   };
 
   if (visible === 0) {
@@ -434,7 +656,6 @@ function filter(btn, cat) {
   }
 }
 
-// Set counts from actual DOM
 const liveCount = document.querySelectorAll('.badge-live').length;
 document.getElementById('live-count').textContent = liveCount + ' Live';
 document.getElementById('stat-demos').textContent = document.querySelectorAll('.tile:not(.coming-soon)').length;
