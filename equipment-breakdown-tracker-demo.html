@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equipment Breakdown Tracker — ISA-95 Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:         #0A0E15;
+  --bg2:        #070B11;
+  --card:       #111826;
+  --card2:      #162030;
+  --card3:      #1C2840;
+  --line:       #1E3050;
+  --line2:      #172540;
+  --orange:     #FF7C2A;
+  --orange-dim: rgba(255,124,42,0.10);
+  --orange-glow:rgba(255,124,42,0.28);
+  --red:        #FF3D57;
+  --red-dim:    rgba(255,61,87,0.10);
+  --green:      #00D68F;
+  --green-dim:  rgba(0,214,143,0.10);
+  --blue:       #3B9EFF;
+  --blue-dim:   rgba(59,158,255,0.10);
+  --yellow:     #FFD60A;
+  --yellow-dim: rgba(255,214,10,0.10);
+  --ink:        #E8F2FF;
+  --ink-s:      #7A9AC0;
+  --ink-m:      #3A5070;
+  --mono:       'Share Tech Mono', monospace;
+  --disp:       'Rajdhani', sans-serif;
+  --body:       'Inter', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); min-height: 100vh; font-size: 13px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+/* ── HEADER ── */
+header {
+  background: var(--bg2); border-bottom: 1px solid var(--line);
+  padding: 0 28px; height: 58px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 60;
+}
+.hdr-left { display: flex; align-items: center; gap: 16px; }
+.hdr-back {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-m);
+  text-decoration: none; border: 1px solid var(--line);
+  padding: 4px 10px; border-radius: 3px; letter-spacing: 0.5px; transition: all .15s;
+}
+.hdr-back:hover { color: var(--orange); border-color: var(--orange); }
+.hdr-title { font-family: var(--disp); font-weight: 700; font-size: 22px; letter-spacing: 0.5px; }
+.hdr-title span { color: var(--orange); }
+.hdr-schema { font-family: var(--mono); font-size: 9.5px; color: var(--ink-m); letter-spacing: 0.5px; }
+.hdr-schema b { color: var(--blue); }
+.hdr-right { display: flex; align-items: center; gap: 22px; }
+.hdr-kpi { text-align: center; }
+.hdr-kpi-val { font-family: var(--mono); font-size: 18px; font-weight: 600; }
+.hdr-kpi-lbl { font-size: 9px; color: var(--ink-m); text-transform: uppercase; letter-spacing: 1px; margin-top: 1px; }
+.live-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 9px; color: var(--orange);
+  border: 1px solid rgba(255,124,42,0.35); padding: 5px 11px; border-radius: 13px;
+  letter-spacing: 1px;
+}
+.live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--orange); animation: blink 1.8s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── LAYOUT ── */
+.layout { display: grid; grid-template-columns: 1fr 300px; height: calc(100vh - 58px); overflow: hidden; }
+.main-col { overflow-y: auto; border-right: 1px solid var(--line); }
+.right-col { overflow-y: auto; }
+
+/* ── EQUIPMENT HIERARCHY STRIP ── */
+.hierarchy-strip {
+  display: flex; align-items: center; gap: 0;
+  padding: 12px 24px; border-bottom: 1px solid var(--line);
+  background: var(--bg2); overflow-x: auto;
+}
+.hs-crumb {
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink-m);
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.hs-crumb b { color: var(--ink-s); }
+.hs-sep { color: var(--ink-m); margin: 0 8px; font-size: 12px; }
+.hs-active b { color: var(--orange); }
+.hs-level-badge {
+  font-family: var(--mono); font-size: 8.5px; padding: 1px 6px; border-radius: 3px;
+  background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(255,124,42,0.2);
+  margin-left: 4px;
+}
+
+/* ── EQUIPMENT GRID ── */
+.equip-section { padding: 18px 22px; }
+.section-title {
+  font-family: var(--mono); font-size: 9.5px; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--ink-m); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title::after { content:''; flex:1; height:1px; background:var(--line); }
+
+.equip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-bottom: 24px; }
+
+.equip-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  overflow: hidden; cursor: pointer; transition: all .2s;
+}
+.equip-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
+.equip-card.status-running { border-top: 2.5px solid var(--green); }
+.equip-card.status-idle    { border-top: 2.5px solid var(--yellow); }
+.equip-card.status-down    { border-top: 2.5px solid var(--red); animation: card-alert 1.8s infinite; }
+.equip-card.status-maintenance { border-top: 2.5px solid var(--blue); }
+@keyframes card-alert { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 16px rgba(255,61,87,0.3)} }
+
+.ec-head { padding: 14px 15px 10px; display: flex; justify-content: space-between; align-items: flex-start; }
+.ec-id { font-family: var(--mono); font-size: 9px; color: var(--ink-m); letter-spacing: 0.5px; margin-bottom: 2px; }
+.ec-name { font-family: var(--disp); font-size: 15px; font-weight: 700; letter-spacing: 0.3px; }
+.ec-class { font-size: 10.5px; color: var(--blue); margin-top: 1px; }
+.ec-status-badge {
+  font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+  padding: 3px 9px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+}
+.es-running     { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,214,143,0.3); }
+.es-idle        { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(255,214,10,0.3); }
+.es-down        { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,61,87,0.35); }
+.es-maintenance { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,158,255,0.3); }
+
+.ec-metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 0 15px 12px; }
+.ecm-cell { background: var(--card2); border-radius: 6px; padding: 7px 8px; }
+.ecm-key { font-size: 9px; color: var(--ink-m); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+.ecm-val { font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
+.ecm-val.good   { color: var(--green); }
+.ecm-val.warn   { color: var(--yellow); }
+.ecm-val.bad    { color: var(--red); }
+.ecm-val.blue   { color: var(--blue); }
+.ecm-val.orange { color: var(--orange); }
+
+/* MTBF health bar */
+.ec-health { padding: 0 15px 13px; }
+.ec-health-label {
+  display: flex; justify-content: space-between;
+  font-size: 9.5px; color: var(--ink-m); margin-bottom: 5px;
+  font-family: var(--mono);
+}
+.ec-health-track { height: 5px; background: var(--card3); border-radius: 3px; overflow: hidden; }
+.ec-health-fill { height: 100%; border-radius: 3px; transition: width .5s; }
+
+/* event log row within card */
+.ec-last-event {
+  padding: 8px 15px 12px; border-top: 1px solid var(--line2);
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.ev-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.ev-text { font-size: 11px; color: var(--ink-s); line-height: 1.4; }
+.ev-text b { color: var(--ink); }
+.ev-time { font-family: var(--mono); font-size: 9px; color: var(--ink-m); margin-top: 2px; }
+
+/* ── BREAKDOWN EVENT LOG ── */
+.event-log { padding: 0 22px 22px; }
+.event-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.ef-btn {
+  font-family: var(--mono); font-size: 9.5px; padding: 4px 12px; border-radius: 13px;
+  border: 1px solid var(--line); background: transparent; color: var(--ink-s);
+  cursor: pointer; transition: all .15s; letter-spacing: 0.3px;
+}
+.ef-btn:hover { border-color: var(--orange); color: var(--orange); }
+.ef-btn.active { background: var(--orange-dim); border-color: var(--orange); color: var(--orange); }
+
+.event-table { width: 100%; border-collapse: collapse; }
+.event-table th {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--ink-m); padding: 8px 10px; border-bottom: 1px solid var(--line);
+  text-align: left; font-weight: 500;
+}
+.event-table td {
+  padding: 10px 10px; border-bottom: 1px solid var(--line2);
+  font-size: 11.5px; vertical-align: top;
+}
+.event-table tr:last-child td { border-bottom: none; }
+.event-table tr:hover td { background: rgba(30,48,80,0.3); cursor: pointer; }
+
+.ev-type-badge {
+  font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.evt-breakdown  { background: var(--red-dim); color: var(--red); }
+.evt-alarm      { background: var(--orange-dim); color: var(--orange); }
+.evt-delay      { background: var(--yellow-dim); color: var(--yellow); }
+.evt-stop       { background: var(--blue-dim); color: var(--blue); }
+.evt-resolved   { background: var(--green-dim); color: var(--green); }
+
+.sev-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+.sev-critical { background: var(--red); box-shadow: 0 0 5px rgba(255,61,87,0.5); }
+.sev-high     { background: var(--orange); }
+.sev-medium   { background: var(--yellow); }
+.sev-low      { background: var(--green); }
+
+.mttr-pill {
+  font-family: var(--mono); font-size: 10px;
+  padding: 1px 7px; border-radius: 10px;
+}
+.mttr-good { background: var(--green-dim); color: var(--green); }
+.mttr-warn { background: var(--yellow-dim); color: var(--yellow); }
+.mttr-bad  { background: var(--red-dim); color: var(--red); }
+
+/* ── RIGHT PANEL ── */
+.right-inner { padding: 16px 15px; }
+.ai-box {
+  border-radius: 10px; padding: 13px 14px; margin-bottom: 14px;
+  border: 1px solid;
+}
+.ai-box.green { background: var(--green-dim); border-color: rgba(0,214,143,0.3); }
+.ai-box.orange { background: var(--orange-dim); border-color: rgba(255,124,42,0.35); }
+.ai-box.red { background: var(--red-dim); border-color: rgba(255,61,87,0.4); }
+.ai-box-head { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px; }
+.ai-box.green .ai-box-head { color: var(--green); }
+.ai-box.orange .ai-box-head { color: var(--orange); }
+.ai-box.red .ai-box-head { color: var(--red); }
+.ai-box-text { font-size: 11.5px; color: var(--ink-s); line-height: 1.65; }
+.ai-box-text b { color: var(--ink); }
+
+.panel-title {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.4px; color: var(--ink-m); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 7px;
+}
+.panel-title::after { content:''; flex:1; height:1px; background:var(--line); }
+
+.r-section { margin-bottom: 18px; }
+
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 14px; }
+.kpi-cell {
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 11px; text-align: center;
+}
+.kpi-val { font-family: var(--mono); font-size: 17px; font-weight: 600; margin-bottom: 2px; }
+.kpi-lbl { font-size: 9.5px; color: var(--ink-m); line-height: 1.3; }
+
+.ai-pred-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 9px;
+  padding: 11px 13px; margin-bottom: 8px; border-left: 3px solid;
+  transition: transform .15s;
+}
+.ai-pred-card:hover { transform: translateX(2px); }
+.ai-pred-card.critical { border-left-color: var(--red); }
+.ai-pred-card.high     { border-left-color: var(--orange); }
+.ai-pred-card.medium   { border-left-color: var(--yellow); }
+.ai-pred-card.low      { border-left-color: var(--green); }
+
+.apc-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.apc-tag {
+  font-family: var(--mono); font-size: 8px; font-weight: 700; padding: 2px 7px;
+  border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.apc-tag.critical { background: var(--red-dim); color: var(--red); }
+.apc-tag.high     { background: var(--orange-dim); color: var(--orange); }
+.apc-tag.medium   { background: var(--yellow-dim); color: var(--yellow); }
+.apc-tag.low      { background: var(--green-dim); color: var(--green); }
+.apc-equip { font-family: var(--mono); font-size: 9.5px; color: var(--ink-s); }
+.apc-msg { font-size: 11px; color: var(--ink-s); line-height: 1.5; }
+.apc-msg b { color: var(--ink); }
+.apc-action { margin-top: 5px; font-size: 10.5px; color: var(--orange); cursor: pointer; }
+.apc-eta { font-family: var(--mono); font-size: 9px; color: var(--ink-m); margin-top: 3px; }
+
+/* utilization bars */
+.util-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.util-label { font-family: var(--mono); font-size: 10px; color: var(--ink-s); min-width: 50px; }
+.util-track { flex: 1; height: 5px; background: var(--card2); border-radius: 3px; overflow: hidden; }
+.util-fill { height: 100%; border-radius: 3px; }
+.util-pct { font-family: var(--mono); font-size: 9.5px; color: var(--ink-m); min-width: 30px; text-align: right; }
+
+.downtime-breakdown { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.dt-row { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; padding: 6px 0; border-bottom: 1px solid var(--line2); }
+.dt-row:last-child { border-bottom: none; }
+.dt-key { color: var(--ink-s); }
+.dt-val { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+
+.isa-note {
+  background: var(--card2); border: 1px solid var(--line); border-radius: 7px;
+  padding: 9px 12px; font-size: 10.5px; color: var(--ink-m); line-height: 1.6; margin-top: 10px;
+}
+.isa-note b { color: var(--ink-s); }
+
+/* ── DRAWER ── */
+.scrim {
+  position: fixed; inset: 0; background: rgba(4,7,12,0.75);
+  backdrop-filter: blur(4px); z-index: 100;
+  opacity: 0; pointer-events: none; transition: opacity .22s;
+}
+.scrim.open { opacity: 1; pointer-events: all; }
+.drawer {
+  position: fixed; top: 58px; right: 0; bottom: 0; width: 480px; max-width: 95vw;
+  background: var(--card); border-left: 1px solid var(--line);
+  transform: translateX(100%); transition: transform .28s cubic-bezier(.2,.8,.2,1);
+  z-index: 101; overflow-y: auto;
+}
+.scrim.open .drawer { transform: translateX(0); }
+.d-head {
+  padding: 18px 22px 13px; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; background: var(--card); z-index: 2;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.d-close {
+  width: 28px; height: 28px; border-radius: 6px; background: var(--card2);
+  border: 1px solid var(--line); color: var(--ink-s); font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0;
+}
+.d-close:hover { border-color: var(--orange); color: var(--ink); }
+.d-eyebrow { font-family: var(--mono); font-size: 9px; color: var(--ink-m); letter-spacing: 1px; margin-bottom: 3px; }
+.d-title { font-family: var(--disp); font-weight: 700; font-size: 22px; }
+.d-sub { font-family: var(--mono); font-size: 10px; color: var(--blue); margin-top: 2px; }
+.d-body { padding: 18px 22px 28px; }
+.d-sec { margin-bottom: 18px; }
+.d-sec-title {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--ink-m); margin-bottom: 9px;
+  display: flex; align-items: center; gap: 6px;
+}
+.d-sec-title::after { content:''; flex:1; height:1px; background:var(--line); }
+.d-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 7px 0; border-bottom: 1px solid rgba(30,48,80,0.5); font-size: 11.5px;
+}
+.d-row:last-child { border-bottom: none; }
+.d-key { color: var(--ink-m); font-size: 11px; min-width: 140px; }
+.d-val { font-family: var(--mono); font-size: 11px; font-weight: 500; text-align: right; }
+
+.failure-history { display: flex; flex-direction: column; gap: 7px; }
+.fh-row {
+  background: var(--card2); border: 1px solid var(--line); border-radius: 7px;
+  padding: 9px 12px;
+}
+.fh-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.fh-id { font-family: var(--mono); font-size: 9.5px; color: var(--orange); }
+.fh-dur { font-family: var(--mono); font-size: 9.5px; }
+.fh-desc { font-size: 11px; color: var(--ink-s); line-height: 1.4; }
+.fh-meta { display: flex; gap: 10px; margin-top: 5px; font-size: 10px; color: var(--ink-m); font-family: var(--mono); }
+
+.ai-rec {
+  border-radius: 9px; padding: 13px 14px; border: 1px solid;
+}
+.ai-rec.green  { background: var(--green-dim); border-color: rgba(0,214,143,0.3); }
+.ai-rec.orange { background: var(--orange-dim); border-color: rgba(255,124,42,0.35); }
+.ai-rec.red    { background: var(--red-dim); border-color: rgba(255,61,87,0.4); }
+.ai-rec-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; }
+.ai-rec.green .ai-rec-label { color: var(--green); }
+.ai-rec.orange .ai-rec-label { color: var(--orange); }
+.ai-rec.red .ai-rec-label { color: var(--red); }
+.ai-rec-text { font-size: 12px; color: var(--ink-s); line-height: 1.6; }
+.ai-rec-text b { color: var(--ink); }
+
+.d-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.d-btn {
+  padding: 8px 16px; border-radius: 7px; font-size: 12px; font-weight: 500;
+  border: none; cursor: pointer; font-family: var(--body); transition: all .15s;
+}
+.d-btn-primary  { background: var(--orange); color: #1A0800; font-weight: 700; }
+.d-btn-primary:hover { background: #FF9A5C; }
+.d-btn-secondary { background: var(--card2); color: var(--ink-s); border: 1px solid var(--line); }
+.d-btn-secondary:hover { border-color: var(--orange); color: var(--ink); }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 22px; right: 22px; max-width: 320px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 9px;
+  padding: 12px 15px; display: flex; gap: 10px;
+  transform: translateY(14px); opacity: 0; transition: all .28s;
+  z-index: 200; pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-body { font-size: 11.5px; color: var(--ink-s); line-height: 1.5; }
+.toast-body b { display: block; font-size: 12.5px; color: var(--ink); margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <a class="hdr-back" href="index.html">← Suite</a>
+    <div class="hdr-title">Equipment <span>Breakdown Tracker</span></div>
+    <div class="hdr-schema">ISA-95 · <b>Equipment · EquipmentActual · OperationsEvent</b></div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-kpi">
+      <div class="hdr-kpi-val" id="hdr-down" style="color:var(--red)">0</div>
+      <div class="hdr-kpi-lbl">Currently Down</div>
+    </div>
+    <div class="hdr-kpi">
+      <div class="hdr-kpi-val" id="hdr-mtbf" style="color:var(--orange)">—</div>
+      <div class="hdr-kpi-lbl">Fleet MTBF (hrs)</div>
+    </div>
+    <div class="hdr-kpi">
+      <div class="hdr-kpi-val" id="hdr-mttr" style="color:var(--blue)">—</div>
+      <div class="hdr-kpi-lbl">Fleet MTTR (hrs)</div>
+    </div>
+    <div class="hdr-kpi">
+      <div class="hdr-kpi-val" id="hdr-avail" style="color:var(--green)">—</div>
+      <div class="hdr-kpi-lbl">Fleet Availability</div>
+    </div>
+    <div class="live-pill"><div class="live-dot"></div>Live</div>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="main-col">
+
+    <!-- ISA-95 Equipment Hierarchy (HierarchyScope: Site → Area → WorkCenter → WorkUnit) -->
+    <div class="hierarchy-strip">
+      <div class="hs-crumb"><b>Site</b>: LekPharma-SI</div>
+      <div class="hs-sep">›</div>
+      <div class="hs-crumb"><b>Area</b>: Solid Dosage Manufacturing</div>
+      <div class="hs-sep">›</div>
+      <div class="hs-crumb hs-active"><b>Work Center</b>: Tablet Production Line 1 <span class="hs-level-badge">EquipmentLevel: Cell</span></div>
+    </div>
+
+    <div class="equip-section">
+      <div class="section-title">Equipment Status — ISA-95 EquipmentActual.EquipmentStatus</div>
+      <div class="equip-grid" id="equip-grid"></div>
+
+      <div class="section-title" style="margin-top:4px">OperationsEvent Log — All Breakdown & Alarm Events</div>
+      <div class="event-filters">
+        <button class="ef-btn active" data-f="all"       onclick="filterEvents(this,'all')">All Events</button>
+        <button class="ef-btn" data-f="Breakdown"        onclick="filterEvents(this,'Breakdown')">Breakdowns</button>
+        <button class="ef-btn" data-f="Alarm"            onclick="filterEvents(this,'Alarm')">Alarms</button>
+        <button class="ef-btn" data-f="Delay"            onclick="filterEvents(this,'Delay')">Delays</button>
+        <button class="ef-btn" data-f="resolved"         onclick="filterEvents(this,'resolved')">Resolved</button>
+      </div>
+      <div class="event-log" style="padding:0">
+        <table class="event-table" id="event-table">
+          <thead>
+            <tr>
+              <th>EventID</th>
+              <th>EventType</th>
+              <th>Source (EquipmentID)</th>
+              <th>Severity</th>
+              <th>EventTime</th>
+              <th>MTTR</th>
+              <th>Response / Status</th>
+            </tr>
+          </thead>
+          <tbody id="event-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: AI Panel -->
+  <div class="right-col">
+    <div class="right-inner">
+      <div class="ai-box green" id="ai-summary-box">
+        <div class="ai-box-head">◆ AI · Reliability Intelligence</div>
+        <div class="ai-box-text" id="ai-summary-text">Analysing equipment telemetry…</div>
+      </div>
+
+      <div class="r-section">
+        <div class="panel-title">Fleet KPIs</div>
+        <div class="kpi-grid" id="kpi-grid"></div>
+      </div>
+
+      <div class="r-section">
+        <div class="panel-title">Equipment Utilization</div>
+        <div id="util-bars"></div>
+      </div>
+
+      <div class="r-section">
+        <div class="panel-title">AI Predictions & Interventions</div>
+        <div id="ai-predictions"></div>
+      </div>
+
+      <div class="r-section">
+        <div class="panel-title">Downtime Breakdown</div>
+        <div class="downtime-breakdown" id="downtime-bd"></div>
+      </div>
+
+      <div class="isa-note">
+        <b>Benchmarks:</b> World-class pharma MTBF: 80–200h, MTTR: 45–120min (TeepTrak). Unplanned downtime cost: $532K/hr avg (2024). Pharma avg loses <b>20% staffed time</b> to unplanned events (SCW.ai). Availability = MTBF ÷ (MTBF + MTTR).
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DRAWER -->
+<div class="scrim" id="scrim" onclick="closeDrawer(event)">
+  <div class="drawer" id="drawer">
+    <div class="d-head">
+      <div>
+        <div class="d-eyebrow" id="d-eyebrow"></div>
+        <div class="d-title" id="d-title"></div>
+        <div class="d-sub" id="d-sub"></div>
+      </div>
+      <button class="d-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="d-body" id="d-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div style="font-size:16px;flex-shrink:0" id="t-icon">◆</div>
+  <div class="toast-body"><b id="t-title"></b><span id="t-msg"></span></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   ISA-95 DATA MODEL
+   Equipment.xsd        — EquipmentID, EquipmentClassID, HierarchyScope,
+                          EquipmentLevel, Description, Property
+   EquipmentActual.xsd  — EquipmentID, StartTime, EndTime,
+                          EquipmentStatus (Running/Idle/Down/Maintenance),
+                          Utilization, Property (downtime reason, OEE, alarms)
+   OperationsEvent.xsd  — EventID, EventType (Start/Stop/Alarm/Delay/Breakdown),
+                          EventTime, Source (EquipmentID), Severity,
+                          Response, Property
+   ═══════════════════════════════════════════════════════════════════ */
+
+// ── Equipment definitions (Equipment.xsd fields) ────────────────
+const EQUIPMENT = [
+  {
+    id:'GR-01', name:'Granulator', classId:'HIGH-SHEAR-GRANULATOR',
+    level:'WorkUnit', hierarchyScope:'Area:SolidDosage/Line1',
+    status:'running',
+    description:'Collette GRAL 75L High-Shear Granulator — primary wet granulation unit',
+    properties:{ Capacity:'75L bowl', InstallDate:'2019-03-12', LastPM:'2025-02-10', NextPM:'2025-05-10', PMIntervalDays:90 },
+    actual:{
+      startTime:'2025-03-18 07:00', endTime:null,
+      utilization:78, oee:74.2,
+      downtimeReason: null
+    },
+    mtbf: 142, // hours — world-class pharma range 80-200h (TeepTrak)
+    mttr: 1.8, // hours — world-class <2h
+    failureCount: 3,
+    totalOperatingHours: 426,
+    failureHistory:[
+      { id:'EVT-0091', date:'2025-01-14', duration:2.1, cause:'Impeller coupling wear', response:'Replaced coupling, recalibrated', severity:'High' },
+      { id:'EVT-0067', date:'2024-10-22', duration:1.4, cause:'Chopper blade imbalance', response:'Blade replacement', severity:'Medium' },
+      { id:'EVT-0044', date:'2024-08-05', duration:1.9, cause:'Temperature sensor drift', response:'Sensor replacement', severity:'Low' },
+    ]
+  },
+  {
+    id:'BL-02', name:'Blender', classId:'BIN-BLENDER',
+    level:'WorkUnit', hierarchyScope:'Area:SolidDosage/Line1',
+    status:'running',
+    description:'Bohle BM-1000 Bin Blender — 1000L capacity, used for final blend',
+    properties:{ Capacity:'1000L bin', InstallDate:'2018-11-20', LastPM:'2025-01-20', NextPM:'2025-04-20', PMIntervalDays:90 },
+    actual:{
+      startTime:'2025-03-18 08:30', endTime:null,
+      utilization:65, oee:61.8,
+      downtimeReason: null
+    },
+    mtbf: 88,   // below world-class (80-200h) — borderline
+    mttr: 2.4,  // slightly above world-class 2h threshold
+    failureCount: 6,
+    totalOperatingHours: 528,
+    failureHistory:[
+      { id:'EVT-0098', date:'2025-02-28', duration:2.8, cause:'Drive belt slippage — bearing wear pattern detected', response:'Belt replacement, bearing inspection flagged', severity:'High' },
+      { id:'EVT-0082', date:'2025-01-11', duration:1.9, cause:'Bin locking mechanism failure', response:'Locking pin replacement', severity:'Medium' },
+      { id:'EVT-0071', date:'2024-12-03', duration:3.1, cause:'Motor overheating — ambient temp spike', response:'Ventilation serviced, thermal cutoff reset', severity:'High' },
+    ]
+  },
+  {
+    id:'DC-03', name:'Fluid Bed Dryer', classId:'FLUID-BED-DRYER',
+    level:'WorkUnit', hierarchyScope:'Area:SolidDosage/Line1',
+    status:'down',
+    description:'Glatt GPCG-30 Fluid Bed Dryer — 30kg batch drying capacity',
+    properties:{ Capacity:'30kg product', InstallDate:'2020-06-15', LastPM:'2025-03-01', NextPM:'2025-06-01', PMIntervalDays:90 },
+    actual:{
+      startTime:'2025-03-18 09:45', endTime:'2025-03-18 11:22',
+      utilization: 0, oee: 0,
+      downtimeReason:'Inlet air temperature sensor failure — product temp unverifiable, batch halted per SOP-MFG-004 §7.3'
+    },
+    mtbf: 52,  // underperforming — below 80h pharma world-class floor
+    mttr: 3.8, // underperforming — should be <2h world-class
+    failureCount: 9,
+    totalOperatingHours: 468,
+    failureHistory:[
+      { id:'EVT-0102', date:'2025-03-18', duration: null, cause:'Inlet air temp sensor failure (PT100)', response:'IN PROGRESS — maintenance dispatched', severity:'Critical' },
+      { id:'EVT-0095', date:'2025-03-05', duration:4.2, cause:'Exhaust filter blockage — pressure differential alarm', response:'Filter replacement, duct inspection', severity:'High' },
+      { id:'EVT-0087', date:'2025-02-14', duration:2.9, cause:'Spray nozzle clogging during coating cycle', response:'Nozzle replacement, coating suspension reformulated', severity:'Medium' },
+    ]
+  },
+  {
+    id:'TP-04', name:'Tablet Press', classId:'ROTARY-TABLET-PRESS',
+    level:'WorkUnit', hierarchyScope:'Area:SolidDosage/Line1',
+    status:'running',
+    description:'Fette 2090 Rotary Tablet Press — 90-station, 400K tablets/hr',
+    properties:{ Capacity:'400,000 tablets/hr', InstallDate:'2021-02-01', LastPM:'2025-03-10', NextPM:'2025-06-10', PMIntervalDays:90 },
+    actual:{
+      startTime:'2025-03-18 07:00', endTime:null,
+      utilization:91, oee:87.1,
+      downtimeReason: null
+    },
+    mtbf: 178,  // world-class (80-200h range)
+    mttr: 1.2,  // world-class (<2h)
+    failureCount: 2,
+    totalOperatingHours: 356,
+    failureHistory:[
+      { id:'EVT-0079', date:'2024-12-20', duration:1.5, cause:'Upper punch sticking — lubrication deficiency', response:'Tooling cleaned, MgSt application verified', severity:'Medium' },
+      { id:'EVT-0055', date:'2024-09-08', duration:0.9, cause:'Weight deviation alarm — fill depth drift', response:'Fill depth recalibrated', severity:'Low' },
+    ]
+  },
+  {
+    id:'CT-05', name:'Film Coater', classId:'PAN-COATER',
+    level:'WorkUnit', hierarchyScope:'Area:SolidDosage/Line1',
+    status:'maintenance',
+    description:'O\'Hara Labcoat IID Pan Coater — 120L pan capacity',
+    properties:{ Capacity:'120L pan', InstallDate:'2019-08-20', LastPM:'2025-03-17', NextPM:'2025-06-17', PMIntervalDays:90 },
+    actual:{
+      startTime:'2025-03-17 14:00', endTime:null,
+      utilization: 0, oee: 0,
+      downtimeReason:'Scheduled preventive maintenance — pan bearing replacement per PM work order WO-2025-0312'
+    },
+    mtbf: 165,
+    mttr: 1.6,
+    failureCount: 2,
+    totalOperatingHours: 330,
+    failureHistory:[
+      { id:'EVT-0088', date:'2025-01-30', duration:2.0, cause:'Coating gun atomisation pressure drop', response:'Nozzle and pump serviced', severity:'Medium' },
+      { id:'EVT-0060', date:'2024-10-05', duration:1.2, cause:'Inlet air damper actuator fault', response:'Actuator replaced', severity:'Low' },
+    ]
+  },
+  {
+    id:'SC-06', name:'Tablet Coater Sifter', classId:'VIBRO-SIFTER',
+    level:'WorkUnit', hierarchyScope:'Area:SolidDosage/Line1',
+    status:'idle',
+    description:'Russell Compact 21 Vibro Sifter — inline particle size classification',
+    properties:{ Capacity:'200kg/hr', InstallDate:'2020-04-10', LastPM:'2025-01-05', NextPM:'2025-04-05', PMIntervalDays:90 },
+    actual:{
+      startTime:null, endTime:null,
+      utilization:0, oee: null,
+      downtimeReason:'Awaiting upstream batch — scheduled to start 14:00'
+    },
+    mtbf: 210,
+    mttr: 0.9,
+    failureCount: 1,
+    totalOperatingHours: 210,
+    failureHistory:[
+      { id:'EVT-0050', date:'2024-07-22', duration:0.8, cause:'Screen mesh tear — contamination risk', response:'Emergency screen replacement, batch quarantined', severity:'High' },
+    ]
+  }
+];
+
+// ── OperationsEvent log (OperationsEvent.xsd fields) ────────────
+const EVENTS = [
+  { id:'EVT-0102', type:'Breakdown', equipId:'DC-03', severity:'Critical',
+    time:'2025-03-18 11:22', mttr: null, resolved:false,
+    description:'Inlet air temp sensor failure (PT100) — product temperature unverifiable',
+    response:'Maintenance dispatched — awaiting spare sensor from stores (ETA 90 min)',
+    property:{ FailureMode:'Sensor', ImpactedBatch:'BT-0847', StepInterrupted:'Drying Step 3', EstimatedDowntime:'2.5h' }},
+  { id:'EVT-0101', type:'Alarm', equipId:'BL-02', severity:'High',
+    time:'2025-03-18 09:15', mttr: 0.3, resolved:true,
+    description:'Drive motor vibration exceeding limit (12.4 mm/s) — auto-alarm',
+    response:'Speed reduced 15%, vibration re-checked at 7.2 mm/s — within tolerance. Bearing inspection scheduled.',
+    property:{ FailureMode:'Vibration', ImpactedBatch:'BT-0847', StepInterrupted:'None — caught early', EstimatedDowntime:'N/A' }},
+  { id:'EVT-0100', type:'Delay', equipId:'SC-06', severity:'Low',
+    time:'2025-03-18 07:00', mttr: null, resolved:false,
+    description:'Equipment idle — upstream batch not ready for sifting',
+    response:'Planned delay. No failure. Scheduled start 14:00.',
+    property:{ FailureMode:'Schedule', ImpactedBatch:'BT-0848', StepInterrupted:'Sifting', EstimatedDowntime:'7h idle' }},
+  { id:'EVT-0099', type:'Breakdown', equipId:'CT-05', severity:'Medium',
+    time:'2025-03-17 14:00', mttr: null, resolved:false,
+    description:'Scheduled preventive maintenance — pan bearing replacement',
+    response:'PM work order WO-2025-0312 in progress. Planned completion 2025-03-19 08:00.',
+    property:{ FailureMode:'Planned PM', ImpactedBatch:'N/A', StepInterrupted:'Coating', EstimatedDowntime:'18h planned' }},
+  { id:'EVT-0098', type:'Breakdown', equipId:'BL-02', severity:'High',
+    time:'2025-02-28 14:30', mttr: 2.8, resolved:true,
+    description:'Drive belt slippage — bearing wear pattern detected in vibration signature',
+    response:'Belt replaced. Bearing inspection completed — early wear confirmed, scheduled replacement at next PM.',
+    property:{ FailureMode:'Mechanical', ImpactedBatch:'BT-0841', StepInterrupted:'Final Blend', EstimatedDowntime:'2.8h actual' }},
+  { id:'EVT-0097', type:'Alarm', equipId:'GR-01', severity:'Medium',
+    time:'2025-02-20 10:05', mttr: 0.5, resolved:true,
+    description:'Chopper speed deviation — target 3000 RPM, actual 2750 RPM',
+    response:'Drive parameter reset, speed restored. No product impact.',
+    property:{ FailureMode:'Electrical', ImpactedBatch:'BT-0840', StepInterrupted:'Granulation', EstimatedDowntime:'0.5h' }},
+  { id:'EVT-0096', type:'Breakdown', equipId:'DC-03', severity:'High',
+    time:'2025-03-05 16:10', mttr: 4.2, resolved:true,
+    description:'Exhaust filter blockage — differential pressure alarm P2 exceeded 85 Pa',
+    response:'Filter replacement carried out. Duct inspection completed. Root cause: filter change interval too long at current product throughput.',
+    property:{ FailureMode:'Filter/Process', ImpactedBatch:'BT-0843', StepInterrupted:'Drying Step 4', EstimatedDowntime:'4.2h actual' }},
+  { id:'EVT-0095', type:'Alarm', equipId:'TP-04', severity:'Low',
+    time:'2025-03-15 08:20', mttr: 0.2, resolved:true,
+    description:'Tablet weight deviation alarm — fill depth drift 0.04mm from setpoint',
+    response:'Fill depth recalibrated. 12 tablets quarantined for IPC. Production resumed.',
+    property:{ FailureMode:'Process Drift', ImpactedBatch:'BT-0846', StepInterrupted:'Compression', EstimatedDowntime:'0.2h' }},
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPUTED METRICS
+   MTBF = Total Operating Hours / Failure Count
+   MTTR = Avg repair duration from EquipmentActual history
+   Availability = MTBF / (MTBF + MTTR)
+   ═══════════════════════════════════════════════════════════════ */
+
+function getAvailability(eq){ return ((eq.mtbf / (eq.mtbf + eq.mttr)) * 100).toFixed(1); }
+function getMTBFHealth(mtbf){ return mtbf >= 130 ? 'good' : mtbf >= 80 ? 'warn' : 'bad'; }
+function getMTTRHealth(mttr){ return mttr <= 2 ? 'good' : mttr <= 4 ? 'warn' : 'bad'; }
+function getStatusColor(s){ return { running:'var(--green)', idle:'var(--yellow)', down:'var(--red)', maintenance:'var(--blue)' }[s]||'var(--ink-m)'; }
+function getStatusLabel(s){ return { running:'Running', idle:'Idle', down:'DOWN', maintenance:'Maintenance' }[s]||s; }
+function getStatusBadgeClass(s){ return { running:'es-running', idle:'es-idle', down:'es-down', maintenance:'es-maintenance' }[s]||'es-idle'; }
+
+// Fleet-wide averages
+function fleetMTBF(){ return (EQUIPMENT.reduce((s,e)=>s+e.mtbf,0)/EQUIPMENT.length).toFixed(0); }
+function fleetMTTR(){ return (EQUIPMENT.reduce((s,e)=>s+e.mttr,0)/EQUIPMENT.length).toFixed(1); }
+function fleetAvail(){ const fm=parseFloat(fleetMTBF()),ft=parseFloat(fleetMTTR()); return ((fm/(fm+ft))*100).toFixed(1); }
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER: EQUIPMENT CARDS
+   ═══════════════════════════════════════════════════════════════ */
+
+function renderEquipGrid(){
+  const grid = document.getElementById('equip-grid');
+  grid.innerHTML = EQUIPMENT.map(eq=>{
+    const avail = getAvailability(eq);
+    const mtbfH = getMTBFHealth(eq.mtbf);
+    const mttrH = getMTTRHealth(eq.mttr);
+    const healthPct = Math.min(100, Math.round((eq.mtbf / 200) * 100)); // vs 200h world-class ceiling
+    const healthColor = mtbfH==='good'?'var(--green)':mtbfH==='warn'?'var(--yellow)':'var(--red)';
+
+    const lastEvent = EVENTS.find(e=>e.equipId===eq.id);
+
+    return `
+      <div class="equip-card status-${eq.status}" onclick="openDrawer('${eq.id}')">
+        <div class="ec-head">
+          <div>
+            <div class="ec-id">${eq.id} · ${eq.classId}</div>
+            <div class="ec-name">${eq.name}</div>
+            <div class="ec-class">HierarchyScope: ${eq.hierarchyScope}</div>
+          </div>
+          <span class="ec-status-badge ${getStatusBadgeClass(eq.status)}">${getStatusLabel(eq.status)}</span>
+        </div>
+        <div class="ec-metrics">
+          <div class="ecm-cell">
+            <div class="ecm-key">MTBF</div>
+            <div class="ecm-val ${mtbfH}">${eq.mtbf}h</div>
+          </div>
+          <div class="ecm-cell">
+            <div class="ecm-key">MTTR</div>
+            <div class="ecm-val ${mttrH}">${eq.mttr}h</div>
+          </div>
+          <div class="ecm-cell">
+            <div class="ecm-key">Availability</div>
+            <div class="ecm-val ${parseFloat(avail)>=95?'good':parseFloat(avail)>=90?'warn':'bad'}">${avail}%</div>
+          </div>
+        </div>
+        <div class="ec-health">
+          <div class="ec-health-label">
+            <span>MTBF reliability vs world-class (200h)</span>
+            <span style="color:${healthColor}">${eq.mtbf}h / 200h</span>
+          </div>
+          <div class="ec-health-track">
+            <div class="ec-health-fill" style="width:${healthPct}%;background:${healthColor}"></div>
+          </div>
+        </div>
+        ${lastEvent?`
+        <div class="ec-last-event">
+          <div class="ev-icon">${lastEvent.resolved?'✓':lastEvent.type==='Breakdown'?'⚠':'●'}</div>
+          <div>
+            <div class="ev-text"><b>${lastEvent.type}</b> — ${lastEvent.description.slice(0,60)}${lastEvent.description.length>60?'…':''}</div>
+            <div class="ev-time">${lastEvent.time} · ${lastEvent.resolved?'Resolved':'Open'}</div>
+          </div>
+        </div>`:''}
+      </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER: EVENT LOG
+   ═══════════════════════════════════════════════════════════════ */
+
+let eventFilter = 'all';
+
+function filterEvents(btn, f){
+  document.querySelectorAll('.ef-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  eventFilter = f;
+  renderEventLog();
+}
+
+function renderEventLog(){
+  let events = EVENTS;
+  if(eventFilter==='resolved') events = events.filter(e=>e.resolved);
+  else if(eventFilter!=='all') events = events.filter(e=>e.type===eventFilter);
+  const sevClass = { Critical:'sev-critical', High:'sev-high', Medium:'sev-medium', Low:'sev-low' };
+  const evtClass = { Breakdown:'evt-breakdown', Alarm:'evt-alarm', Delay:'evt-delay', Stop:'evt-stop' };
+  const mttrDisplay = (e) => {
+    if(!e.mttr && !e.resolved) return `<span style="color:var(--red);font-family:var(--mono);font-size:10px">In Progress</span>`;
+    if(!e.mttr) return `<span style="color:var(--ink-m);font-family:var(--mono);font-size:10px">N/A</span>`;
+    const cls = e.mttr<=2?'mttr-good':e.mttr<=4?'mttr-warn':'mttr-bad';
+    return `<span class="mttr-pill ${cls}">${e.mttr}h</span>`;
+  };
+  document.getElementById('event-tbody').innerHTML = events.map(e=>`
+    <tr onclick="openEventDrawer('${e.id}')">
+      <td><span style="font-family:var(--mono);font-size:10.5px;color:var(--blue)">${e.id}</span></td>
+      <td><span class="ev-type-badge ${evtClass[e.type]||'evt-stop'}">${e.type}</span></td>
+      <td><span style="font-family:var(--mono);font-size:10.5px;color:var(--orange)">${e.equipId}</span> — ${EQUIPMENT.find(q=>q.id===e.equipId)?.name||''}</td>
+      <td><span class="sev-dot ${sevClass[e.severity]||'sev-low'}"></span>${e.severity}</td>
+      <td style="font-family:var(--mono);font-size:10px;color:var(--ink-s)">${e.time}</td>
+      <td>${mttrDisplay(e)}</td>
+      <td style="max-width:180px;color:var(--ink-s)">${e.response.slice(0,70)}${e.response.length>70?'…':''}</td>
+    </tr>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER: AI RIGHT PANEL
+   ═══════════════════════════════════════════════════════════════ */
+
+function renderAI(){
+  // Header KPIs
+  const downCount = EQUIPMENT.filter(e=>e.status==='down').length;
+  document.getElementById('hdr-down').textContent = downCount;
+  document.getElementById('hdr-mtbf').textContent = fleetMTBF();
+  document.getElementById('hdr-mttr').textContent = fleetMTTR();
+  document.getElementById('hdr-avail').textContent = fleetAvail()+'%';
+
+  // Summary box
+  const box = document.getElementById('ai-summary-box');
+  const txt = document.getElementById('ai-summary-text');
+  const avail = parseFloat(fleetAvail());
+  if(downCount>0){
+    box.className='ai-box red';
+    txt.innerHTML=`<b>${downCount} equipment unit(s) currently down.</b> Fleet availability at <b>${fleetAvail()}%</b> — below world-class 95% target. DC-03 (Fluid Bed Dryer) is on critical path for batch BT-0847. Industry benchmark: unplanned downtime costs <b>$532,000/hr avg</b> in 2024.`;
+  } else if(avail < 90){
+    box.className='ai-box orange';
+    txt.innerHTML=`Fleet availability at <b>${fleetAvail()}%</b> — below the 90% acceptable threshold. BL-02 MTBF of 88h is borderline and MTTR of 2.4h exceeds world-class 2h. Pharma manufacturers lose an avg of <b>20% of staffed time</b> to unplanned events (SCW.ai).`;
+  } else {
+    box.className='ai-box green';
+    txt.innerHTML=`Fleet availability at <b>${fleetAvail()}%</b> — tracking in acceptable range. TP-04 (Tablet Press) is performing at world-class: MTBF 178h, MTTR 1.2h. DC-03 remains the highest reliability risk in the fleet.`;
+  }
+
+  // KPI grid
+  document.getElementById('kpi-grid').innerHTML = [
+    { val: fleetMTBF()+'h', lbl:'Fleet MTBF', color: parseFloat(fleetMTBF())>=130?'var(--green)':parseFloat(fleetMTBF())>=80?'var(--yellow)':'var(--red)' },
+    { val: fleetMTTR()+'h', lbl:'Fleet MTTR', color: parseFloat(fleetMTTR())<=2?'var(--green)':parseFloat(fleetMTTR())<=4?'var(--yellow)':'var(--red)' },
+    { val: fleetAvail()+'%', lbl:'Fleet Availability', color: parseFloat(fleetAvail())>=95?'var(--green)':parseFloat(fleetAvail())>=90?'var(--yellow)':'var(--red)' },
+    { val: EVENTS.filter(e=>!e.resolved).length, lbl:'Open Events', color: EVENTS.filter(e=>!e.resolved).length>2?'var(--red)':'var(--orange)' },
+  ].map(k=>`<div class="kpi-cell"><div class="kpi-val" style="color:${k.color}">${k.val}</div><div class="kpi-lbl">${k.lbl}</div></div>`).join('');
+
+  // Utilization bars
+  document.getElementById('util-bars').innerHTML = EQUIPMENT.map(eq=>{
+    const u = eq.actual.utilization;
+    const c = u===0?'var(--ink-m)':u>85?'var(--green)':u>60?'var(--yellow)':'var(--orange)';
+    return `<div class="util-row">
+      <div class="util-label">${eq.id}</div>
+      <div class="util-track"><div class="util-fill" style="width:${u}%;background:${c}"></div></div>
+      <div class="util-pct">${u}%</div>
+    </div>`;
+  }).join('');
+
+  // AI Predictions — derived from MTBF/failure history patterns
+  const preds = [
+    { eq:'DC-03', level:'critical',
+      msg:`<b>DC-03 currently down.</b> This is the 3rd breakdown in 90 days — MTBF has degraded to <b>52h</b>, far below the world-class 80h floor. Pattern suggests sensor module aging. MTTR of 3.8h already above world-class 2h ceiling.`,
+      action:'Priority: sensor module replacement + PM review', eta:'Current event: ETA 90 min' },
+    { eq:'BL-02', level:'high',
+      msg:`<b>BL-02 vibration alarm this morning.</b> Bearing wear confirmed at last breakdown (Feb 28). With MTBF at 88h and declining, next failure predicted within <b>10–18 days</b>. Standardised repair procedures can reduce MTTR by up to 40% (Wireman).`,
+      action:'Schedule bearing replacement within 7 days', eta:'Predicted failure: Apr 1–8' },
+    { eq:'SC-06', level:'low',
+      msg:`<b>SC-06 PM overdue by 13 days.</b> Next PM was due Apr 5. Current MTBF of 210h is world-class — maintaining this requires on-schedule PM. Deferred PM is a leading indicator of MTBF decline.`,
+      action:'Schedule PM immediately', eta:'PM due: 2025-04-05' },
+  ];
+  document.getElementById('ai-predictions').innerHTML = preds.map(p=>`
+    <div class="ai-pred-card ${p.level}">
+      <div class="apc-top"><span class="apc-tag ${p.level}">${p.level}</span><span class="apc-equip">${p.eq} — ${EQUIPMENT.find(e=>e.id===p.eq)?.name||''}</span></div>
+      <div class="apc-msg">${p.msg}</div>
+      <div class="apc-action" onclick="showToast('◆','Action logged','${p.action}')">→ ${p.action}</div>
+      <div class="apc-eta">${p.eta}</div>
+    </div>`).join('');
+
+  // Downtime breakdown
+  const totalDown = EQUIPMENT.reduce((s,e)=>s+(e.status==='down'||e.status==='maintenance'?100-e.actual.utilization:0),0);
+  const unplanned = EVENTS.filter(e=>e.type==='Breakdown'&&e.mttr).reduce((s,e)=>s+e.mttr,0);
+  const planned = 18; // CT-05 PM
+  document.getElementById('downtime-bd').innerHTML = [
+    { key:'Unplanned breakdowns', val: unplanned.toFixed(1)+'h', color:'var(--red)' },
+    { key:'Planned maintenance', val: planned+'h', color:'var(--blue)' },
+    { key:'Idle / Schedule delays', val: '7.0h', color:'var(--yellow)' },
+    { key:'Fleet downtime cost est.', val: '$'+(((unplanned)*532000)/6).toLocaleString(), color:'var(--orange)' },
+  ].map(r=>`<div class="dt-row"><div class="dt-key">${r.key}</div><div class="dt-val" style="color:${r.color}">${r.val}</div></div>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DRAWER — Equipment detail
+   ═══════════════════════════════════════════════════════════════ */
+
+function openDrawer(eqId){
+  const eq = EQUIPMENT.find(e=>e.id===eqId);
+  if(!eq) return;
+  const avail = getAvailability(eq);
+  const mtbfH = getMTBFHealth(eq.mtbf);
+  const mttrH = getMTTRHealth(eq.mttr);
+
+  document.getElementById('d-eyebrow').textContent = `${eq.id} · ISA-95 EquipmentActual`;
+  document.getElementById('d-title').textContent = eq.name;
+  document.getElementById('d-sub').textContent = `${eq.classId} · ${eq.hierarchyScope}`;
+
+  let html = '';
+
+  // Equipment.xsd fields
+  html += `<div class="d-sec">
+    <div class="d-sec-title">ISA-95 Equipment Fields</div>
+    <div class="d-row"><div class="d-key">EquipmentID</div><div class="d-val" style="color:var(--orange)">${eq.id}</div></div>
+    <div class="d-row"><div class="d-key">EquipmentClassID</div><div class="d-val" style="color:var(--blue)">${eq.classId}</div></div>
+    <div class="d-row"><div class="d-key">EquipmentLevel</div><div class="d-val">${eq.level}</div></div>
+    <div class="d-row"><div class="d-key">HierarchyScope</div><div class="d-val" style="font-size:10px">${eq.hierarchyScope}</div></div>
+    <div class="d-row"><div class="d-key">Description</div><div class="d-val" style="font-size:10px;text-align:right;max-width:240px;line-height:1.3">${eq.description}</div></div>
+    ${Object.entries(eq.properties).map(([k,v])=>`<div class="d-row"><div class="d-key">${k}</div><div class="d-val">${v}</div></div>`).join('')}
+  </div>`;
+
+  // EquipmentActual fields
+  html += `<div class="d-sec">
+    <div class="d-sec-title">ISA-95 EquipmentActual Fields</div>
+    <div class="d-row"><div class="d-key">EquipmentStatus</div><div class="d-val" style="color:${getStatusColor(eq.status)}">${getStatusLabel(eq.status)}</div></div>
+    <div class="d-row"><div class="d-key">StartTime</div><div class="d-val">${eq.actual.startTime||'Not started'}</div></div>
+    <div class="d-row"><div class="d-key">EndTime</div><div class="d-val">${eq.actual.endTime||'—'}</div></div>
+    <div class="d-row"><div class="d-key">Utilization</div><div class="d-val" style="color:${eq.actual.utilization>80?'var(--green)':eq.actual.utilization>0?'var(--yellow)':'var(--red)'}">${eq.actual.utilization}%</div></div>
+    <div class="d-row"><div class="d-key">OEE</div><div class="d-val" style="color:${eq.actual.oee>85?'var(--green)':eq.actual.oee>0?'var(--yellow)':'var(--red)'}">${eq.actual.oee||0}%</div></div>
+    ${eq.actual.downtimeReason?`<div class="d-row"><div class="d-key">DowntimeReason</div><div class="d-val" style="color:var(--red);text-align:right;max-width:230px;line-height:1.3;font-size:10px">${eq.actual.downtimeReason}</div></div>`:''}
+  </div>`;
+
+  // MTBF/MTTR analysis
+  html += `<div class="d-sec">
+    <div class="d-sec-title">Reliability Metrics</div>
+    <div class="d-row"><div class="d-key">MTBF</div><div class="d-val" style="color:${mtbfH==='good'?'var(--green)':mtbfH==='warn'?'var(--yellow)':'var(--red)'}">${eq.mtbf}h ${mtbfH==='good'?'✓ World-class':mtbfH==='warn'?'⚠ Borderline':'✕ Below threshold'}</div></div>
+    <div class="d-row"><div class="d-key">MTTR</div><div class="d-val" style="color:${mttrH==='good'?'var(--green)':mttrH==='warn'?'var(--yellow)':'var(--red)'}">${eq.mttr}h ${mttrH==='good'?'✓ World-class':'⚠ Above 2h target'}</div></div>
+    <div class="d-row"><div class="d-key">Availability</div><div class="d-val" style="color:${parseFloat(avail)>=95?'var(--green)':parseFloat(avail)>=90?'var(--yellow)':'var(--red)'}">${avail}% (MTBF ÷ (MTBF+MTTR))</div></div>
+    <div class="d-row"><div class="d-key">Total Failures (tracked)</div><div class="d-val">${eq.failureCount}</div></div>
+    <div class="d-row"><div class="d-key">Total Operating Hours</div><div class="d-val">${eq.totalOperatingHours}h</div></div>
+    <div class="d-row"><div class="d-key">Benchmark MTBF (pharma)</div><div class="d-val" style="color:var(--ink-m)">80–200h (TeepTrak)</div></div>
+    <div class="d-row"><div class="d-key">Benchmark MTTR (world-class)</div><div class="d-val" style="color:var(--ink-m)">&lt;2h target</div></div>
+  </div>`;
+
+  // Failure history
+  html += `<div class="d-sec">
+    <div class="d-sec-title">OperationsEvent History — Failures</div>
+    <div class="failure-history">${eq.failureHistory.map(f=>`
+      <div class="fh-row">
+        <div class="fh-top">
+          <span class="fh-id">${f.id}</span>
+          <span class="fh-dur" style="color:${f.duration?getMTTRHealth(f.duration)==='good'?'var(--green)':getMTTRHealth(f.duration)==='warn'?'var(--yellow)':'var(--red)':'var(--red)'}">${f.duration?f.duration+'h MTTR':'In Progress'}</span>
+        </div>
+        <div class="fh-desc">${f.cause}</div>
+        <div class="fh-meta"><span>${f.date}</span><span>Severity: ${f.severity}</span><span>${f.response.slice(0,50)}${f.response.length>50?'…':''}</span></div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+
+  // AI recommendation
+  const recClass = eq.status==='down'?'red':mtbfH==='bad'||mttrH==='bad'?'orange':'green';
+  const recText = eq.status==='down'
+    ? `<b>Equipment is currently down.</b> Every hour of MTTR in a regulated pharma plant is both a production loss and a potential quality event — the deviation record for batch BT-0847 must be initiated. At the industry average of $532,000/hr unplanned downtime cost, this event is already significant. Priority: restore the inlet air temp sensor and verify product temperature continuity before resuming drying.`
+    : mtbfH==='bad'
+    ? `<b>MTBF of ${eq.mtbf}h is below the world-class pharma floor of 80h</b> (TeepTrak benchmark). This equipment has a recurring failure pattern. A reliability-centred maintenance approach focused on root-cause analysis of recurring failure modes is recommended — not just reactive repair. Targeted PM improvements can improve MTBF by 40–75% (per industry case data).`
+    : mttrH==='bad'
+    ? `<b>MTTR of ${eq.mttr}h exceeds the world-class 2h target.</b> The dominant problem is recovery speed, not failure frequency. Key MTTR levers: spare parts pre-staging, fault-mode SOPs, and technician skill matching. 47% of extended repair time is caused by parts unavailability (Oxmaint data).`
+    : `This equipment is performing within acceptable reliability parameters. MTBF of ${eq.mtbf}h and MTTR of ${eq.mttr}h give availability of ${avail}%. Maintain the current PM schedule — on-schedule PM is the primary driver of sustained MTBF in this range.`;
+
+  html += `<div class="d-sec">
+    <div class="d-sec-title">AI Reliability Recommendation</div>
+    <div class="ai-rec ${recClass}">
+      <span class="ai-rec-label">◆ AI · Equipment Reliability Intelligence</span>
+      <div class="ai-rec-text">${recText}</div>
+    </div>
+  </div>`;
+
+  html += `<div class="d-actions">
+    <button class="d-btn d-btn-primary" onclick="showToast('◆','Work order raised','Maintenance work order created for ${eq.id}.');closeDrawer()">Raise Work Order</button>
+    <button class="d-btn d-btn-secondary" onclick="closeDrawer()">Close</button>
+  </div>`;
+
+  document.getElementById('d-body').innerHTML = html;
+  document.getElementById('scrim').classList.add('open');
+}
+
+function openEventDrawer(evtId){
+  const ev = EVENTS.find(e=>e.id===evtId);
+  if(!ev) return;
+  const eq = EQUIPMENT.find(e=>e.id===ev.equipId);
+  openDrawer(ev.equipId);
+}
+
+function closeDrawer(e){
+  if(!e||e.target.id==='scrim') document.getElementById('scrim').classList.remove('open');
+}
+
+/* toast */
+let toastTimer;
+function showToast(icon,title,msg){
+  document.getElementById('t-icon').textContent=icon;
+  document.getElementById('t-title').textContent=title;
+  document.getElementById('t-msg').textContent=msg;
+  const el=document.getElementById('toast');
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),4200);
+}
+
+/* INIT */
+renderEquipGrid();
+renderEventLog();
+renderAI();
+</script>
+</body>
+</html>

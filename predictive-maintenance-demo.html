@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Predictive Maintenance Signal Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #080D14;
+  --bg2:       #060A10;
+  --card:      #0E1620;
+  --card2:     #19243A;
+  --card3:     #1E2C44;
+  --line:      #243050;
+  --line2:     #182038;
+  --phosphor:  #7EE8A2;
+  --ph-dim:    rgba(126,232,162,0.10);
+  --ph-glow:   rgba(126,232,162,0.25);
+  --amber:     #F5A623;
+  --amber-dim: rgba(245,166,35,0.10);
+  --red:       #FF4D6A;
+  --red-dim:   rgba(255,77,106,0.10);
+  --violet:    #A78BFA;
+  --violet-dim:rgba(167,139,250,0.12);
+  --blue:      #60A5FA;
+  --ink:       #D8E8FF;
+  --ink-s:     #6B84AA;
+  --ink-m:     #344560;
+  --orb:       'Orbitron', sans-serif;
+  --mono:      'Space Mono', monospace;
+  --body:      'Inter', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); min-height: 100vh; overflow-x: hidden; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+/* ── HEADER ── */
+header {
+  background: var(--bg2); border-bottom: 1px solid var(--line);
+  padding: 0 28px; height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 60;
+}
+.hdr-left { display: flex; align-items: center; gap: 16px; }
+.hdr-back {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-m);
+  text-decoration: none; border: 1px solid var(--line);
+  padding: 4px 10px; border-radius: 3px; transition: all .15s;
+}
+.hdr-back:hover { color: var(--phosphor); border-color: var(--phosphor); }
+.hdr-title {
+  font-family: var(--orb); font-weight: 700; font-size: 16px;
+  letter-spacing: 2px; color: var(--phosphor);
+  text-shadow: 0 0 20px var(--ph-glow);
+}
+.hdr-schema { font-family: var(--mono); font-size: 9px; color: var(--ink-m); letter-spacing: 0.5px; }
+.hdr-schema b { color: var(--violet); }
+.hdr-right { display: flex; align-items: center; gap: 24px; }
+.hdr-kpi { text-align: center; }
+.hdr-kpi-val { font-family: var(--orb); font-size: 16px; font-weight: 600; }
+.hdr-kpi-lbl { font-family: var(--mono); font-size: 8px; color: var(--ink-m); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+.scan-pill {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 9px; color: var(--phosphor);
+  border: 1px solid rgba(126,232,162,0.3); padding: 5px 12px; border-radius: 13px;
+  letter-spacing: 1px;
+}
+.scan-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--phosphor); animation: blink 1.2s infinite; }
+@keyframes blink { 0%,100%{opacity:1;box-shadow:0 0 6px var(--ph-glow)} 50%{opacity:0.2;box-shadow:none} }
+
+/* ── MACHINE TABS ── */
+.machine-tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--line);
+  background: var(--bg2); padding: 0 28px; overflow-x: auto;
+}
+.m-tab {
+  padding: 12px 22px; cursor: pointer; border-bottom: 2px solid transparent;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.5px;
+  color: var(--ink-m); transition: all .18s; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px;
+}
+.m-tab:hover { color: var(--ink-s); }
+.m-tab.active { border-bottom-color: var(--phosphor); color: var(--phosphor); }
+.m-tab.warn { }
+.m-tab.alert { }
+.m-tab-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── MAIN LAYOUT ── */
+.main { display: grid; grid-template-columns: 1fr 300px; height: calc(100vh - 56px - 46px); overflow: hidden; }
+.signal-col { overflow-y: auto; padding: 20px 24px; }
+.ai-col { overflow-y: auto; border-left: 1px solid var(--line); padding: 16px 14px; }
+
+/* ── MACHINE INFO STRIP ── */
+.machine-info {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line2);
+  flex-wrap: wrap; gap: 12px;
+}
+.mi-left { }
+.mi-id { font-family: var(--mono); font-size: 9.5px; color: var(--ink-m); letter-spacing: 1px; margin-bottom: 3px; }
+.mi-name { font-family: var(--orb); font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+.mi-desc { font-family: var(--mono); font-size: 10px; color: var(--ink-s); margin-top: 3px; }
+.mi-right { display: flex; gap: 14px; }
+.mi-stat { text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; }
+.mi-stat-val { font-family: var(--orb); font-size: 15px; font-weight: 600; }
+.mi-stat-lbl { font-family: var(--mono); font-size: 8.5px; color: var(--ink-m); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px; }
+
+/* ── SIGNAL CHANNELS — the oscilloscope strips ── */
+.signal-channel {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 12px; margin-bottom: 14px; overflow: hidden;
+}
+.signal-channel.status-warn { border-color: rgba(245,166,35,0.4); }
+.signal-channel.status-alert { border-color: rgba(255,77,106,0.5); animation: ch-pulse 2s infinite; }
+@keyframes ch-pulse { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 16px rgba(255,77,106,0.2)} }
+
+.sc-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 16px 8px;
+}
+.sc-left { display: flex; align-items: center; gap: 12px; }
+.sc-signal-name { font-family: var(--mono); font-size: 11.5px; font-weight: 700; letter-spacing: 0.5px; }
+.sc-field-ref { font-family: var(--mono); font-size: 9px; color: var(--ink-m); letter-spacing: 0.3px; }
+.sc-right { display: flex; align-items: center; gap: 14px; }
+.sc-current {
+  font-family: var(--orb); font-size: 20px; font-weight: 700;
+  line-height: 1; letter-spacing: 1px;
+}
+.sc-unit { font-family: var(--mono); font-size: 10px; color: var(--ink-s); margin-left: 3px; }
+.sc-status-pill {
+  font-family: var(--mono); font-size: 8.5px; font-weight: 700;
+  padding: 3px 9px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.sp-ok    { background: var(--ph-dim); color: var(--phosphor); border: 1px solid rgba(126,232,162,0.3); }
+.sp-warn  { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,166,35,0.35); }
+.sp-alert { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,77,106,0.4); }
+
+/* THE SIGNATURE ELEMENT: oscilloscope canvas */
+.oscilloscope {
+  position: relative; height: 80px; background: #050B14;
+  border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line2);
+  overflow: hidden;
+}
+.osc-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(36,48,80,0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36,48,80,0.4) 1px, transparent 1px);
+  background-size: 40px 20px;
+}
+.osc-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.osc-threshold-label {
+  position: absolute; right: 8px; font-family: var(--mono); font-size: 8px;
+  letter-spacing: 0.3px;
+}
+
+.sc-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 16px 10px; font-size: 10.5px;
+}
+.sc-stats { display: flex; gap: 18px; }
+.sc-stat { display: flex; align-items: center; gap: 5px; }
+.sc-stat-key { font-family: var(--mono); font-size: 9px; color: var(--ink-m); }
+.sc-stat-val { font-family: var(--orb); font-size: 11px; font-weight: 600; }
+.sc-pred {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 9.5px;
+}
+.sc-pred-label { color: var(--ink-m); }
+.sc-pred-val { font-weight: 700; }
+
+/* ── AI COLUMN ── */
+.col-title {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.4px; color: var(--ink-m); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 7px;
+}
+.col-title::after { content:''; flex:1; height:1px; background:var(--line); }
+.ai-section { margin-bottom: 18px; }
+
+.ai-summary-box {
+  border-radius: 10px; padding: 13px 14px; margin-bottom: 14px; border: 1px solid;
+}
+.ai-summary-box.ok     { background: var(--ph-dim); border-color: rgba(126,232,162,0.3); }
+.ai-summary-box.warn   { background: var(--amber-dim); border-color: rgba(245,166,35,0.35); }
+.ai-summary-box.alert  { background: var(--red-dim); border-color: rgba(255,77,106,0.4); }
+.ai-sum-head { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px; }
+.ai-summary-box.ok .ai-sum-head   { color: var(--phosphor); }
+.ai-summary-box.warn .ai-sum-head { color: var(--amber); }
+.ai-summary-box.alert .ai-sum-head { color: var(--red); }
+.ai-sum-text { font-size: 11.5px; color: var(--ink-s); line-height: 1.65; }
+.ai-sum-text b { color: var(--ink); }
+
+.pred-timeline { margin-bottom: 14px; }
+.pt-item {
+  display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line2);
+  cursor: pointer; transition: background .15s;
+}
+.pt-item:last-child { border-bottom: none; }
+.pt-item:hover { background: rgba(36,48,80,0.3); border-radius: 6px; padding-left: 6px; }
+.pt-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.pt-dot.critical { background: var(--red); box-shadow: 0 0 6px rgba(255,77,106,0.5); }
+.pt-dot.high     { background: var(--amber); }
+.pt-dot.medium   { background: var(--violet); }
+.pt-dot.low      { background: var(--phosphor); }
+.pt-body { }
+.pt-signal { font-family: var(--mono); font-size: 10px; color: var(--ink); font-weight: 700; margin-bottom: 2px; }
+.pt-eta { font-family: var(--orb); font-size: 12px; font-weight: 600; }
+.pt-eta.critical { color: var(--red); }
+.pt-eta.high     { color: var(--amber); }
+.pt-eta.medium   { color: var(--violet); }
+.pt-eta.low      { color: var(--phosphor); }
+.pt-reason { font-size: 10.5px; color: var(--ink-s); margin-top: 2px; line-height: 1.4; }
+
+.maint-schedule { }
+.ms-item {
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 7px;
+}
+.ms-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.ms-type { font-family: var(--mono); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.ms-type.urgent { color: var(--red); }
+.ms-type.planned { color: var(--amber); }
+.ms-type.monitor { color: var(--phosphor); }
+.ms-date { font-family: var(--orb); font-size: 11px; color: var(--ink-s); }
+.ms-desc { font-size: 11px; color: var(--ink-s); line-height: 1.45; }
+.ms-action {
+  margin-top: 6px; font-family: var(--mono); font-size: 9.5px; color: var(--violet);
+  cursor: pointer;
+}
+
+.kpi-row { display: flex; gap: 7px; margin-bottom: 14px; }
+.kpi-chip {
+  flex: 1; background: var(--card); border: 1px solid var(--line);
+  border-radius: 7px; padding: 8px 10px; text-align: center;
+}
+.kpi-chip-val { font-family: var(--orb); font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.kpi-chip-lbl { font-family: var(--mono); font-size: 8px; color: var(--ink-m); text-transform: uppercase; letter-spacing: 0.5px; }
+
+.legend-row { display: flex; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 9px; color: var(--ink-s); }
+.leg-line { width: 18px; height: 2px; border-radius: 1px; }
+.leg-line.dashed { background: repeating-linear-gradient(90deg,var(--violet) 0 4px,transparent 4px 8px); }
+
+.isa-note {
+  background: var(--card2); border: 1px solid var(--line); border-radius: 7px;
+  padding: 9px 12px; font-size: 10px; color: var(--ink-m); line-height: 1.6; margin-top: 8px;
+}
+.isa-note b { color: var(--ink-s); }
+
+/* ── DRAWER ── */
+.scrim {
+  position: fixed; inset: 0; background: rgba(4,7,14,0.78);
+  backdrop-filter: blur(4px); z-index: 100;
+  opacity: 0; pointer-events: none; transition: opacity .22s;
+}
+.scrim.open { opacity: 1; pointer-events: all; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 460px; max-width: 96vw;
+  background: var(--card); border-left: 1px solid var(--line);
+  transform: translateX(100%); transition: transform .28s cubic-bezier(.2,.8,.2,1);
+  z-index: 101; overflow-y: auto;
+}
+.scrim.open .drawer { transform: translateX(0); }
+.d-head {
+  padding: 18px 22px 13px; border-bottom: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: flex-start;
+  position: sticky; top: 0; background: var(--card); z-index: 2;
+}
+.d-close {
+  width: 28px; height: 28px; border-radius: 6px; background: var(--card2);
+  border: 1px solid var(--line); color: var(--ink-s); font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0;
+}
+.d-close:hover { border-color: var(--phosphor); color: var(--ink); }
+.d-eyebrow { font-family: var(--mono); font-size: 9px; color: var(--ink-m); letter-spacing: 1px; margin-bottom: 3px; }
+.d-title { font-family: var(--orb); font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+.d-sub { font-family: var(--mono); font-size: 10px; color: var(--violet); margin-top: 2px; }
+.d-body { padding: 18px 22px 28px; }
+.d-sec { margin-bottom: 20px; }
+.d-sec-title {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--ink-m); margin-bottom: 9px;
+  display: flex; align-items: center; gap: 6px;
+}
+.d-sec-title::after { content:''; flex:1; height:1px; background:var(--line); }
+.d-row {
+  display: flex; justify-content: space-between; padding: 6px 0;
+  border-bottom: 1px solid rgba(36,48,80,0.5); font-size: 11px;
+}
+.d-row:last-child { border-bottom: none; }
+.d-key { color: var(--ink-m); font-family: var(--mono); font-size: 10px; }
+.d-val { font-family: var(--orb); font-size: 11px; text-align: right; }
+.ai-rec-box {
+  border-radius: 9px; padding: 13px 14px; border: 1px solid;
+}
+.ai-rec-box.ok    { background: var(--ph-dim); border-color: rgba(126,232,162,0.3); }
+.ai-rec-box.warn  { background: var(--amber-dim); border-color: rgba(245,166,35,0.35); }
+.ai-rec-box.alert { background: var(--red-dim); border-color: rgba(255,77,106,0.4); }
+.arc-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; }
+.ai-rec-box.ok .arc-label   { color: var(--phosphor); }
+.ai-rec-box.warn .arc-label { color: var(--amber); }
+.ai-rec-box.alert .arc-label{ color: var(--red); }
+.arc-text { font-size: 12px; color: var(--ink-s); line-height: 1.6; }
+.arc-text b { color: var(--ink); }
+.d-actions { display: flex; gap: 8px; margin-top: 14px; }
+.d-btn {
+  padding: 8px 16px; border-radius: 7px; font-size: 12px; font-weight: 500;
+  border: none; cursor: pointer; font-family: var(--body); transition: all .15s;
+}
+.d-btn-primary { background: var(--phosphor); color: #051008; font-weight: 700; }
+.d-btn-primary:hover { background: #A8F5C2; }
+.d-btn-secondary { background: var(--card2); color: var(--ink-s); border: 1px solid var(--line); }
+.d-btn-secondary:hover { border-color: var(--phosphor); color: var(--ink); }
+
+.toast {
+  position: fixed; bottom: 20px; right: 20px; max-width: 320px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 9px;
+  padding: 12px 15px; display: flex; gap: 10px;
+  transform: translateY(14px); opacity: 0; transition: all .28s;
+  z-index: 200; pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-body { font-size: 11.5px; color: var(--ink-s); line-height: 1.5; }
+.toast-body b { display: block; font-size: 12px; color: var(--ink); margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <a class="hdr-back" href="index.html">← Suite</a>
+    <div class="hdr-title">PREDICTIVE SIGNAL BOARD</div>
+    <div class="hdr-schema">Lek Pharma dataset n=1,005 · <b>ejection_mean · stiffness_mean · SREL · vibration · temperature</b></div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-kpi">
+      <div class="hdr-kpi-val" id="hdr-signals" style="color:var(--phosphor)">0</div>
+      <div class="hdr-kpi-lbl">Signals Nominal</div>
+    </div>
+    <div class="hdr-kpi">
+      <div class="hdr-kpi-val" id="hdr-warn" style="color:var(--amber)">0</div>
+      <div class="hdr-kpi-lbl">Trending Warn</div>
+    </div>
+    <div class="hdr-kpi">
+      <div class="hdr-kpi-val" id="hdr-alert" style="color:var(--red)">0</div>
+      <div class="hdr-kpi-lbl">Action Required</div>
+    </div>
+    <div class="scan-pill"><div class="scan-dot"></div>SCANNING</div>
+  </div>
+</header>
+
+<div class="machine-tabs" id="machine-tabs"></div>
+
+<div class="main">
+  <div class="signal-col" id="signal-col">
+    <div class="machine-info">
+      <div class="mi-left">
+        <div class="mi-id" id="mi-id"></div>
+        <div class="mi-name" id="mi-name"></div>
+        <div class="mi-desc" id="mi-desc"></div>
+      </div>
+      <div class="mi-right" id="mi-right"></div>
+    </div>
+    <div class="legend-row">
+      <div class="leg-item"><div class="leg-line" style="background:var(--phosphor)"></div>Historical signal</div>
+      <div class="leg-item"><div class="leg-line dashed"></div>AI projection (trend extrapolation)</div>
+      <div class="leg-item"><div class="leg-line" style="background:var(--red)"></div>Alert threshold</div>
+      <div class="leg-item"><div class="leg-line" style="background:var(--amber)"></div>Warn threshold</div>
+    </div>
+    <div id="channels"></div>
+  </div>
+
+  <div class="ai-col">
+    <div class="ai-summary-box ok" id="ai-summary-box">
+      <div class="ai-sum-head">◆ AI · Predictive Maintenance</div>
+      <div class="ai-sum-text" id="ai-sum-text">Initialising signal analysis…</div>
+    </div>
+
+    <div class="ai-section">
+      <div class="col-title">Failure Prediction Timeline</div>
+      <div class="pred-timeline" id="pred-timeline"></div>
+    </div>
+
+    <div class="ai-section">
+      <div class="col-title">Recommended Maintenance</div>
+      <div class="maint-schedule" id="maint-schedule"></div>
+    </div>
+
+    <div class="ai-section">
+      <div class="col-title">Fleet Signal Health</div>
+      <div id="fleet-health"></div>
+    </div>
+
+    <div class="isa-note">
+      <b>Data sources:</b> ejection_mean, stiffness_mean, SREL_production_mean from Lek Pharmaceuticals 1,005-batch dataset (Žagar & Mihelič, <i>Scientific Data</i> 2022). Vibration grounded in TeepTrak pharma MTBF benchmarks. World-class MTTR &lt;2h, pharma MTBF 80–200h.
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" onclick="closeDrawer(event)">
+  <div class="drawer" id="drawer">
+    <div class="d-head">
+      <div>
+        <div class="d-eyebrow" id="d-eyebrow"></div>
+        <div class="d-title" id="d-title"></div>
+        <div class="d-sub" id="d-sub"></div>
+      </div>
+      <button class="d-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="d-body" id="d-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div style="font-size:16px;flex-shrink:0" id="t-icon">◆</div>
+  <div class="toast-body"><b id="t-title"></b><span id="t-msg"></span></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   DATA MODEL
+   Each machine has 5 signal channels. Each signal has:
+   - A rolling history array (40 readings = the oscilloscope trace)
+   - Real baseline stats from the Lek dataset or pharma benchmarks
+   - warnAt / alertAt thresholds
+   - inverted flag (true = lower is worse, e.g. OEE)
+   - A trend slope that drives the AI prediction
+   All views read from these same arrays — single source of truth.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const HIST = 40; // number of readings to show in oscilloscope
+const PROJ = 15; // number of projected readings to draw
+
+// Trend slope: positive = rising, negative = falling
+// Steeper slope = AI predicts sooner breach
+function initHistory(mean, noise, count){
+  return Array.from({length:count}, (_,i) => mean + (Math.random()-0.5)*noise*2);
+}
+
+const MACHINES = [
+  {
+    id:'TP-04', name:'TABLET PRESS', desc:'Fette 2090 Rotary Tablet Press — 90 station, 400K tablets/hr · HierarchyScope: Area:SolidDosage/Line1',
+    overallStatus:'warn',
+    stats:{ OEE:'87.1%', Utilization:'91%', MTBF:'178h', MTTR:'1.2h' },
+    signals:[
+      {
+        id:'ejection', name:'Ejection Force', unit:'N', dec:0,
+        fieldRef:'Lek dataset: ejection_mean (N)',
+        mean:185, noise:22, warnAt:410, alertAt:560, inverted:false,
+        baseNote:'Lek dataset: rising ejection force = tablets sticking to tooling. No direct mean/max published; grounded in expert documentation.',
+        trendSlope: 3.2, // rising — sticking tendency increasing
+        history: initHistory(185, 22, HIST),
+        state:'ok'
+      },
+      {
+        id:'stiffness', name:'Bottom Punch Stiffness', unit:'N', dec:0,
+        fieldRef:'Lek dataset: stiffness_mean (N) — press auto-stops at limit',
+        mean:320, noise:45, warnAt:600, alertAt:760, inverted:false,
+        baseNote:'Lek dataset: when stiffness limit is reached, the press stops with suitable diagnosis.',
+        trendSlope: 1.8,
+        history: initHistory(320, 45, HIST),
+        state:'ok'
+      },
+      {
+        id:'srel', name:'Compression Force SREL', unit:'%', dec:2,
+        fieldRef:'Lek dataset: SREL_production_mean (%) — expert max = 15%',
+        mean:2.3, noise:0.9, warnAt:6.5, alertAt:10.0, inverted:false,
+        baseNote:'Lek dataset: SREL = main compression force standard relative deviation. Expert upper limit for this product: 15%. Values above 6.5% correlate with drug release variability.',
+        trendSlope: 0.04,
+        history: initHistory(2.3, 0.9, HIST),
+        state:'ok'
+      },
+      {
+        id:'vibration', name:'Motor Vibration', unit:'mm/s', dec:1,
+        fieldRef:'Industry benchmark: ISO 10816 pharma equipment',
+        mean:3.2, noise:0.8, warnAt:7.1, alertAt:11.2, inverted:false,
+        baseNote:'ISO 10816-3: acceptable limit for Class I machines <7.1 mm/s, alarm at >11.2 mm/s. Pharma MTBF collapses when vibration is sustained above warn threshold.',
+        trendSlope: 0.12,
+        history: initHistory(3.2, 0.8, HIST),
+        state:'ok'
+      },
+      {
+        id:'temp', name:'Drive Motor Temperature', unit:'°C', dec:1,
+        fieldRef:'Equipment manufacturer spec — normal <65°C, warn 75°C',
+        mean:52, noise:3, warnAt:75, alertAt:88, inverted:false,
+        baseNote:'Motor temp >75°C indicates cooling system degradation or bearing friction. Sustained high temps precede thermal shutdown and motor winding failure.',
+        trendSlope: 0.06,
+        history: initHistory(52, 3, HIST),
+        state:'ok'
+      }
+    ]
+  },
+  {
+    id:'DC-03', name:'FLUID BED DRYER', desc:'Glatt GPCG-30 Fluid Bed Dryer — 30kg batch capacity · HierarchyScope: Area:SolidDosage/Line1',
+    overallStatus:'alert',
+    stats:{ OEE:'0%', Utilization:'0%', MTBF:'52h', MTTR:'3.8h' },
+    signals:[
+      {
+        id:'inlet_temp', name:'Inlet Air Temperature', unit:'°C', dec:1,
+        fieldRef:'SOP-MFG-004 §7.3 — target 65–70°C',
+        mean:67, noise:1.5, warnAt:72, alertAt:76, inverted:false,
+        baseNote:'Lek dataset records inlet air temp as a critical process parameter. Values above 72°C indicate heating element overshoot or control loop failure.',
+        trendSlope: 0.25, // already trending high — this is the current failure signal
+        history: initHistory(67, 1.5, HIST).map((v,i)=> i>28 ? v + (i-28)*0.5 : v),
+        state:'alert'
+      },
+      {
+        id:'product_temp', name:'Product Bed Temperature', unit:'°C', dec:1,
+        fieldRef:'Lek dataset: product temperature parameter — target 40–45°C',
+        mean:42, noise:1.2, warnAt:47, alertAt:52, inverted:false,
+        baseNote:'Lek dataset: product_temp mean 42.1°C ±1.8°C across 1,005 batches. Excursions above 47°C risk API degradation.',
+        trendSlope: 0.18,
+        history: initHistory(42, 1.2, HIST).map((v,i)=> i>30 ? v + (i-30)*0.35 : v),
+        state:'warn'
+      },
+      {
+        id:'dp', name:'Filter Differential Pressure', unit:'Pa', dec:0,
+        fieldRef:'Equipment spec: normal <60 Pa, alarm >85 Pa',
+        mean:38, noise:5, warnAt:68, alertAt:85, inverted:false,
+        baseNote:'Rising DP indicates exhaust filter blockage — a known recurring failure for DC-03. Previous event (EVT-0095) was caused by filter DP exceeding 85 Pa.',
+        trendSlope: 1.4,
+        history: initHistory(38, 5, HIST),
+        state:'ok'
+      },
+      {
+        id:'airflow', name:'Inlet Airflow', unit:'m³/h', dec:0,
+        fieldRef:'Equipment spec: target 800–1000 m³/h',
+        mean:920, noise:30, warnAt:750, alertAt:650, inverted:true,
+        baseNote:'Reduced airflow = reduced drying efficiency and longer cycle times. Below 750 m³/h indicates damper or fan motor degradation.',
+        trendSlope: -2.1,
+        history: initHistory(920, 30, HIST),
+        state:'ok'
+      },
+      {
+        id:'vibration_fbd', name:'Fan Motor Vibration', unit:'mm/s', dec:1,
+        fieldRef:'Industry benchmark: ISO 10816',
+        mean:2.8, noise:0.6, warnAt:7.1, alertAt:11.2, inverted:false,
+        baseNote:'Fan motor vibration is a leading indicator of bearing wear — the component most likely to cause the next unplanned downtime event on DC-03.',
+        trendSlope: 0.08,
+        history: initHistory(2.8, 0.6, HIST),
+        state:'ok'
+      }
+    ]
+  },
+  {
+    id:'BL-02', name:'BIN BLENDER', desc:'Bohle BM-1000 Bin Blender — 1000L capacity · HierarchyScope: Area:SolidDosage/Line1',
+    overallStatus:'warn',
+    stats:{ OEE:'61.8%', Utilization:'65%', MTBF:'88h', MTTR:'2.4h' },
+    signals:[
+      {
+        id:'vib_bl', name:'Drive Motor Vibration', unit:'mm/s', dec:1,
+        fieldRef:'ISO 10816 — bearing wear indicator',
+        mean:4.8, noise:0.9, warnAt:7.1, alertAt:11.2, inverted:false,
+        baseNote:'BL-02 vibration alarm triggered this morning at 12.4 mm/s. Bearing wear confirmed at last breakdown (Feb 28). Current baseline elevated vs fleet norm (3.2 mm/s on TP-04).',
+        trendSlope: 0.18, // bearing deteriorating — steeper slope
+        history: initHistory(4.8, 0.9, HIST),
+        state:'warn'
+      },
+      {
+        id:'torque', name:'Drive Torque', unit:'Nm', dec:0,
+        fieldRef:'Equipment spec: normal 180–240 Nm',
+        mean:198, noise:18, warnAt:260, alertAt:295, inverted:false,
+        baseNote:'Rising torque indicates increasing mechanical resistance — consistent with bearing wear increasing friction on the drive shaft.',
+        trendSlope: 0.9,
+        history: initHistory(198, 18, HIST),
+        state:'ok'
+      },
+      {
+        id:'blend_temp', name:'Product Temperature', unit:'°C', dec:1,
+        fieldRef:'Process spec: <35°C during blending',
+        mean:26, noise:2, warnAt:33, alertAt:38, inverted:false,
+        baseNote:'Elevated product temperature during blending can cause API degradation and affect blend uniformity. Linked to ambient conditions and motor heat generation.',
+        trendSlope: 0.02,
+        history: initHistory(26, 2, HIST),
+        state:'ok'
+      },
+      {
+        id:'srel_bl', name:'Blend Uniformity RSD', unit:'%', dec:2,
+        fieldRef:'ICH Q6A: blend uniformity RSD should be <5%',
+        mean:1.8, noise:0.4, warnAt:4.0, alertAt:5.5, inverted:false,
+        baseNote:'Blend uniformity RSD rising indicates segregation or inadequate blending — directly linked to downstream tablet weight variation and drug release.',
+        trendSlope: 0.01,
+        history: initHistory(1.8, 0.4, HIST),
+        state:'ok'
+      },
+      {
+        id:'speed', name:'Rotation Speed', unit:'RPM', dec:0,
+        fieldRef:'Process spec: target 12 RPM ±0.5',
+        mean:12, noise:0.3, warnAt:10.5, alertAt:9.5, inverted:true,
+        baseNote:'Speed dropping below 10.5 RPM indicates drive motor slippage or load imbalance — consistent with belt wear observed at last maintenance event.',
+        trendSlope: -0.01,
+        history: initHistory(12, 0.3, HIST),
+        state:'ok'
+      }
+    ]
+  },
+  {
+    id:'GR-01', name:'GRANULATOR', desc:'Collette GRAL 75L High-Shear Granulator · HierarchyScope: Area:SolidDosage/Line1',
+    overallStatus:'ok',
+    stats:{ OEE:'74.2%', Utilization:'78%', MTBF:'142h', MTTR:'1.8h' },
+    signals:[
+      {
+        id:'impeller', name:'Impeller Speed', unit:'RPM', dec:0,
+        fieldRef:'Process spec: target 350 RPM',
+        mean:350, noise:8, warnAt:320, alertAt:300, inverted:true,
+        baseNote:'Impeller speed deviation indicates drive coupling wear or frequency inverter fault — the most common failure mode for GR-01 (3 of last 3 events).',
+        trendSlope: -0.05,
+        history: initHistory(350, 8, HIST),
+        state:'ok'
+      },
+      {
+        id:'chopper', name:'Chopper Speed', unit:'RPM', dec:0,
+        fieldRef:'Process spec: target 1500 RPM',
+        mean:1500, noise:25, warnAt:1380, alertAt:1280, inverted:true,
+        baseNote:'Chopper speed drops indicate blade imbalance or bearing wear. Previous event EVT-0097 was caused by chopper speed deviation to 2750 RPM (now recovered to baseline).',
+        trendSlope: -0.1,
+        history: initHistory(1500, 25, HIST),
+        state:'ok'
+      },
+      {
+        id:'power', name:'Motor Power Draw', unit:'kW', dec:1,
+        fieldRef:'Equipment spec: normal 8–14 kW during granulation',
+        mean:10.8, noise:1.2, warnAt:15.5, alertAt:18.2, inverted:false,
+        baseNote:'Rising power draw indicates increased product resistance — either binder addition rate too high or impeller bearing drag increasing.',
+        trendSlope: 0.03,
+        history: initHistory(10.8, 1.2, HIST),
+        state:'ok'
+      },
+      {
+        id:'gran_temp', name:'Product Temperature', unit:'°C', dec:1,
+        fieldRef:'Process spec: target 40–45°C during wet granulation',
+        mean:42, noise:1.5, warnAt:48, alertAt:54, inverted:false,
+        baseNote:'Product temp in granulator directly affects granule growth kinetics and moisture content. Lek dataset: product_temp mean 42.1°C across all batches.',
+        trendSlope: 0.02,
+        history: initHistory(42, 1.5, HIST),
+        state:'ok'
+      },
+      {
+        id:'vib_gr', name:'Motor Vibration', unit:'mm/s', dec:1,
+        fieldRef:'ISO 10816',
+        mean:2.9, noise:0.5, warnAt:7.1, alertAt:11.2, inverted:false,
+        baseNote:'GR-01 vibration within normal range. Impeller coupling was replaced in January — vibration signature post-replacement is healthy.',
+        trendSlope: 0.03,
+        history: initHistory(2.9, 0.5, HIST),
+        state:'ok'
+      }
+    ]
+  }
+];
+
+/* ════════════════════════════════════════════════════════
+   SIMULATION ENGINE
+   Mean-reverting random walk + trend drift per signal.
+   The trend slope is the key: it makes signals slowly
+   drift toward a threshold, allowing AI to project
+   when the breach will occur based on current slope.
+   ════════════════════════════════════════════════════════ */
+
+function classifySignal(sig){
+  const v = sig.history[sig.history.length-1];
+  if(sig.inverted){ return v<=sig.alertAt?'alert':v<=sig.warnAt?'warn':'ok'; }
+  else { return v>=sig.alertAt?'alert':v>=sig.warnAt?'warn':'ok'; }
+}
+
+// Linear regression on last N readings to get the actual current slope
+function calcSlope(arr, n=12){
+  const pts = arr.slice(-n);
+  const meanX = (n-1)/2, meanY = pts.reduce((s,v)=>s+v,0)/n;
+  let num=0, den=0;
+  pts.forEach((y,i)=>{ num+=(i-meanX)*(y-meanY); den+=(i-meanX)**2; });
+  return den===0?0:num/den;
+}
+
+// Project how many more readings until threshold breach
+function predictBreachReadings(sig){
+  const last = sig.history[sig.history.length-1];
+  const slope = calcSlope(sig.history) + sig.trendSlope * 0.3;
+  if(sig.inverted){
+    if(slope>=0) return null; // not declining — no breach predicted
+    const readings = Math.abs((sig.warnAt - last) / slope);
+    return readings < 0 ? null : Math.round(readings);
+  } else {
+    if(slope<=0) return null;
+    const readings = (sig.warnAt - last) / slope;
+    return readings < 0 ? null : Math.round(readings);
+  }
+}
+
+function readingsToDays(r){
+  if(r <= 0) return null; // already at or past threshold
+  const d = (r*3/86400).toFixed(1);
+  return parseFloat(d) < 0.1 ? null : d; // treat <0.1d as effectively breached
+}
+
+function breachLabel(days, alreadyBreached){
+  if(alreadyBreached || days === null) return null;
+  const d = parseFloat(days);
+  if(d < 0.1) return null;
+  return days;
+}
+
+let activeMachineId = MACHINES[0].id;
+
+function tick(){
+  MACHINES.forEach(machine=>{
+    machine.signals.forEach(sig=>{
+      const last = sig.history[sig.history.length-1];
+      const pull = (sig.mean - last) * 0.08;
+      const noise = (Math.random()-0.5)*sig.noise*0.7;
+      // trend drift — biased toward the threshold direction
+      const drift = sig.trendSlope * (0.5 + Math.random()*0.8);
+      let next = last + pull + noise + drift;
+      next = Math.min(sig.inverted ? sig.mean*1.4 : sig.alertAt*1.1,
+                      Math.max(sig.inverted ? sig.alertAt*0.85 : sig.mean*0.6, next));
+      sig.history.push(next);
+      if(sig.history.length > HIST + PROJ) sig.history.shift();
+      sig.state = classifySignal(sig);
+    });
+    // Update machine overall status
+    const states = machine.signals.map(s=>s.state);
+    machine.overallStatus = states.includes('alert')?'alert':states.includes('warn')?'warn':'ok';
+  });
+
+  renderTabs();
+  renderMachine(activeMachineId);
+  renderAI();
+  renderHeader();
+}
+
+/* ════════════════════════════════════════════════════════
+   RENDER: TABS
+   ════════════════════════════════════════════════════════ */
+
+function renderTabs(){
+  const el = document.getElementById('machine-tabs');
+  el.innerHTML = MACHINES.map(m=>{
+    const dotColor = m.overallStatus==='alert'?'var(--red)':m.overallStatus==='warn'?'var(--amber)':'var(--phosphor)';
+    return `<div class="m-tab ${activeMachineId===m.id?'active':''} ${m.overallStatus}" onclick="switchMachine('${m.id}')">
+      <div class="m-tab-dot" style="background:${dotColor}"></div>
+      ${m.id} — ${m.name.split(' ')[0]+' '+m.name.split(' ')[1]||m.name}
+    </div>`;
+  }).join('');
+}
+
+function switchMachine(id){
+  activeMachineId = id;
+  renderTabs();
+  renderMachine(id);
+  renderAI();
+}
+
+/* ════════════════════════════════════════════════════════
+   RENDER: MACHINE SIGNALS
+   ════════════════════════════════════════════════════════ */
+
+function renderMachine(machineId){
+  const machine = MACHINES.find(m=>m.id===machineId);
+  document.getElementById('mi-id').textContent = `${machine.id} · EquipmentActual`;
+  document.getElementById('mi-name').textContent = machine.name;
+  document.getElementById('mi-desc').textContent = machine.desc;
+  document.getElementById('mi-right').innerHTML = Object.entries(machine.stats).map(([k,v])=>`
+    <div class="mi-stat">
+      <div class="mi-stat-val" style="color:${k==='OEE'&&parseFloat(v)>85?'var(--phosphor)':k==='MTBF'&&parseFloat(v)>130?'var(--phosphor)':'var(--ink)'}">${v}</div>
+      <div class="mi-stat-lbl">${k}</div>
+    </div>`).join('');
+
+  const el = document.getElementById('channels');
+  el.innerHTML = machine.signals.map(sig=>renderChannel(sig)).join('');
+
+  // Draw canvases after DOM insert
+  requestAnimationFrame(()=>{
+    machine.signals.forEach(sig=>drawOscilloscope(sig));
+  });
+}
+
+function renderChannel(sig){
+  const last = sig.history[sig.history.length-1];
+  const displayVal = last.toFixed(sig.dec);
+  const breach = predictBreachReadings(sig);
+  const breachDays = breach ? readingsToDays(breach) : null;
+
+  const stateClass = sig.state==='alert'?'status-alert':sig.state==='warn'?'status-warn':'';
+  const valColor = sig.state==='alert'?'var(--red)':sig.state==='warn'?'var(--amber)':'var(--phosphor)';
+  const pillClass = sig.state==='alert'?'sp-alert':sig.state==='warn'?'sp-warn':'sp-ok';
+  const pillLabel = sig.state==='alert'?'ACTION REQUIRED':sig.state==='warn'?'TRENDING WARN':'NOMINAL';
+
+  const slope = calcSlope(sig.history);
+  const slopePct = sig.inverted ? -slope : slope;
+
+  return `
+    <div class="signal-channel ${stateClass}" onclick="openSignalDrawer('${activeMachineId}','${sig.id}')">
+      <div class="sc-header">
+        <div class="sc-left">
+          <div>
+            <div class="sc-signal-name">${sig.name}</div>
+            <div class="sc-field-ref">${sig.fieldRef}</div>
+          </div>
+        </div>
+        <div class="sc-right">
+          <div>
+            <span class="sc-current" style="color:${valColor}">${displayVal}</span>
+            <span class="sc-unit">${sig.unit}</span>
+          </div>
+          <span class="sc-status-pill ${pillClass}">${pillLabel}</span>
+        </div>
+      </div>
+      <div class="oscilloscope" id="osc-${sig.id}">
+        <div class="osc-grid"></div>
+        <canvas class="osc-canvas" id="canvas-${sig.id}"></canvas>
+        <div class="osc-threshold-label" style="bottom:${thresholdY(sig, 'warn')}px;color:var(--amber)">WARN ${sig.warnAt}${sig.unit}</div>
+        <div class="osc-threshold-label" style="bottom:${thresholdY(sig, 'alert')}px;color:var(--red)">ALERT ${sig.alertAt}${sig.unit}</div>
+      </div>
+      <div class="sc-footer">
+        <div class="sc-stats">
+          <div class="sc-stat">
+            <div class="sc-stat-key">BASELINE</div>
+            <div class="sc-stat-val" style="color:var(--ink-s);font-size:10px">${sig.mean}${sig.unit}</div>
+          </div>
+          <div class="sc-stat">
+            <div class="sc-stat-key">TREND</div>
+            <div class="sc-stat-val" style="color:${Math.abs(slopePct)>0.5?'var(--amber)':'var(--ink-s)'};font-size:10px">${slopePct>0?'+':''}${slopePct.toFixed(2)}/tick</div>
+          </div>
+          <div class="sc-stat">
+            <div class="sc-stat-key">WARN AT</div>
+            <div class="sc-stat-val" style="color:var(--amber);font-size:10px">${sig.warnAt}${sig.unit}</div>
+          </div>
+        </div>
+        <div class="sc-pred">
+          <span class="sc-pred-label">${sig.state==='alert'?'AI STATUS':sig.state==='warn'?'AI STATUS':'AI PREDICTS WARN IN'}</span>
+          <span class="sc-pred-val" style="color:${sig.state==='alert'?'var(--red)':sig.state==='warn'?'var(--amber)':breachDays&&parseFloat(breachDays)<2?'var(--red)':breachDays&&parseFloat(breachDays)<7?'var(--amber)':'var(--phosphor)'}">${sig.state==='alert'?'THRESHOLD EXCEEDED':sig.state==='warn'?'APPROACHING LIMIT':breachDays?breachDays+'d':'Not trending'}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function thresholdY(sig, level){
+  // Returns approximate bottom px for the threshold label in 80px height oscilloscope
+  const h = 80, pad = 6;
+  const dataMin = Math.min(...sig.history, sig.inverted?sig.alertAt:sig.mean*0.7);
+  const dataMax = Math.max(...sig.history, sig.inverted?sig.mean*1.2:sig.alertAt*1.05);
+  const thresh = level==='warn'?sig.warnAt:sig.alertAt;
+  const pct = (thresh - dataMin)/(dataMax - dataMin);
+  return Math.round(pct*(h-pad*2)+pad);
+}
+
+/* ════════════════════════════════════════════════════════
+   OSCILLOSCOPE CANVAS DRAWING
+   Historical signal in phosphor green
+   Projected trend in dashed violet
+   Threshold lines in amber/red
+   ════════════════════════════════════════════════════════ */
+
+function drawOscilloscope(sig){
+  const canvas = document.getElementById(`canvas-${sig.id}`);
+  if(!canvas) return;
+  const container = document.getElementById(`osc-${sig.id}`);
+  canvas.width = container.offsetWidth;
+  canvas.height = container.offsetHeight;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const PAD = 8;
+
+  // Use last HIST readings as history, project PROJ more
+  const hist = sig.history.slice(-HIST);
+  const slope = calcSlope(hist) + sig.trendSlope * 0.3;
+  const projectedPoints = Array.from({length:PROJ}, (_,i)=>
+    hist[hist.length-1] + slope*(i+1) + (Math.random()-0.5)*sig.noise*0.15
+  );
+
+  const allPoints = [...hist, ...projectedPoints];
+  const dataMin = Math.min(...allPoints, sig.inverted?sig.alertAt*0.85:sig.mean*0.75);
+  const dataMax = Math.max(...allPoints, sig.inverted?sig.mean*1.15:sig.alertAt*1.08);
+
+  function toY(v){ return H - PAD - ((v-dataMin)/(dataMax-dataMin||1))*(H-PAD*2); }
+  function toX(i, total){ return PAD + (i/(total-1))*(W-PAD*2); }
+
+  ctx.clearRect(0,0,W,H);
+
+  // Threshold lines
+  const drawThresh = (val, color)=>{
+    const y = toY(val);
+    ctx.beginPath(); ctx.setLineDash([4,4]); ctx.strokeStyle=color; ctx.lineWidth=1.2; ctx.globalAlpha=0.7;
+    ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha=1;
+  };
+  drawThresh(sig.warnAt, '#F5A623');
+  drawThresh(sig.alertAt, '#FF4D6A');
+
+  // Historical signal — phosphor green with glow
+  const histX = (i)=> toX(i, HIST + PROJ);
+  ctx.beginPath();
+  hist.forEach((v,i)=>{ i===0?ctx.moveTo(histX(i),toY(v)):ctx.lineTo(histX(i),toY(v)); });
+  ctx.strokeStyle = sig.state==='alert'?'#FF4D6A':sig.state==='warn'?'#F5A623':'#7EE8A2';
+  ctx.lineWidth = 1.8;
+  ctx.shadowColor = sig.state==='alert'?'#FF4D6A':sig.state==='warn'?'#F5A623':'#7EE8A2';
+  ctx.shadowBlur = 6;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Fill below signal
+  ctx.beginPath();
+  hist.forEach((v,i)=>{ i===0?ctx.moveTo(histX(i),toY(v)):ctx.lineTo(histX(i),toY(v)); });
+  ctx.lineTo(histX(hist.length-1), H); ctx.lineTo(histX(0), H); ctx.closePath();
+  ctx.fillStyle = sig.state==='alert'?'rgba(255,77,106,0.06)':sig.state==='warn'?'rgba(245,166,35,0.06)':'rgba(126,232,162,0.06)';
+  ctx.fill();
+
+  // Current value dot
+  const lastV = hist[hist.length-1];
+  ctx.beginPath();
+  ctx.arc(histX(hist.length-1), toY(lastV), 4, 0, Math.PI*2);
+  ctx.fillStyle = sig.state==='alert'?'#FF4D6A':sig.state==='warn'?'#F5A623':'#7EE8A2';
+  ctx.shadowColor = sig.state==='alert'?'#FF4D6A':'#7EE8A2';
+  ctx.shadowBlur = 10;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Projected trend — violet dashed
+  ctx.beginPath();
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle = '#A78BFA';
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.8;
+  projectedPoints.forEach((v,i)=>{
+    const x = histX(hist.length + i);
+    const y = toY(v);
+    i===0 ? ctx.moveTo(histX(hist.length-1), toY(lastV)) : null;
+    i===0 ? ctx.lineTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+
+  // Warn breach prediction marker (where violet line crosses warn threshold)
+  const breach = predictBreachReadings(sig);
+  if(breach && breach <= PROJ){
+    const bx = histX(hist.length + breach - 1);
+    const by = toY(sig.warnAt);
+    ctx.beginPath();
+    ctx.arc(bx, by, 5, 0, Math.PI*2);
+    ctx.fillStyle = '#F5A623';
+    ctx.shadowColor = '#F5A623'; ctx.shadowBlur=12;
+    ctx.fill(); ctx.shadowBlur=0;
+  }
+
+  // Separator line between history and projection
+  const sepX = histX(hist.length - 1);
+  ctx.beginPath(); ctx.setLineDash([2,4]);
+  ctx.strokeStyle = 'rgba(167,139,250,0.3)'; ctx.lineWidth=1;
+  ctx.moveTo(sepX,0); ctx.lineTo(sepX,H); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* ════════════════════════════════════════════════════════
+   RENDER: AI PANEL
+   ════════════════════════════════════════════════════════ */
+
+function renderAI(){
+  const machine = MACHINES.find(m=>m.id===activeMachineId);
+
+  // Summary
+  const box = document.getElementById('ai-summary-box');
+  const txt = document.getElementById('ai-sum-text');
+  const alertSigs = machine.signals.filter(s=>s.state==='alert');
+  const warnSigs = machine.signals.filter(s=>s.state==='warn');
+  if(alertSigs.length){
+    box.className='ai-summary-box alert';
+    txt.innerHTML=`<b>${alertSigs.length} signal(s) in CRITICAL state</b> on ${machine.id}. Immediate maintenance action required. Industry benchmark: pharma MTBF 80–200h (TeepTrak); ${machine.id} MTBF at ${machine.stats.MTBF}. Unplanned downtime costs avg <b>$532,000/hr</b> in 2024.`;
+  } else if(warnSigs.length){
+    box.className='ai-summary-box warn';
+    txt.innerHTML=`<b>${warnSigs.length} signal(s) trending toward thresholds</b> on ${machine.id}. AI projects breach within the prediction window. Proactive maintenance can prevent unplanned downtime — pharma manufacturers lose <b>20% of staffed time</b> to reactive breakdowns (SCW.ai).`;
+  } else {
+    box.className='ai-summary-box ok';
+    txt.innerHTML=`All ${machine.signals.length} signals on ${machine.id} are within normal operating range. AI projection shows no threshold breach in the current trend window. Maintain PM schedule.`;
+  }
+
+  // Prediction timeline
+  const preds = [];
+  machine.signals.forEach(sig=>{
+    const breach = predictBreachReadings(sig);
+    if(!breach) return;
+    const days = parseFloat(readingsToDays(breach));
+    const level = days<1?'critical':days<3?'high':days<7?'medium':'low';
+    preds.push({ sig, breach, days, level });
+  });
+  preds.sort((a,b)=>a.days-b.days);
+
+  // filter out zero/near-zero days — those are already-breached signals, shown separately
+  const validPreds = preds.filter(p => p.days >= 0.1);
+  const alreadyBreached = machine.signals.filter(s => s.state === 'alert' || s.state === 'warn');
+
+  document.getElementById('pred-timeline').innerHTML = (() => {
+    let html = '';
+    // Already breached/warning signals shown at top with clear language
+    alreadyBreached.forEach(sig => {
+      const level = sig.state === 'alert' ? 'critical' : 'high';
+      const label = sig.state === 'alert' ? 'THRESHOLD EXCEEDED' : 'WARN THRESHOLD ACTIVE';
+      const color = sig.state === 'alert' ? 'var(--red)' : 'var(--amber)';
+      html += `<div class="pt-item" onclick="openSignalDrawer('${activeMachineId}','${sig.id}')">
+        <div class="pt-dot ${level}"></div>
+        <div class="pt-body">
+          <div class="pt-signal">${sig.name}</div>
+          <div class="pt-eta ${level}">${label}</div>
+          <div class="pt-reason">Current: ${sig.history[sig.history.length-1].toFixed(sig.dec)}${sig.unit} · ${sig.state==='alert'?'Alert':'Warn'} threshold: ${sig.state==='alert'?sig.alertAt:sig.warnAt}${sig.unit} · Immediate action required</div>
+        </div>
+      </div>`;
+    });
+    // Future predicted breaches
+    validPreds.forEach(p => {
+      if(p.sig.state !== 'ok') return; // already shown above
+      html += `<div class="pt-item" onclick="openSignalDrawer('${activeMachineId}','${p.sig.id}')">
+        <div class="pt-dot ${p.level}"></div>
+        <div class="pt-body">
+          <div class="pt-signal">${p.sig.name}</div>
+          <div class="pt-eta ${p.level}">~${p.days}d to warn threshold</div>
+          <div class="pt-reason">Current: ${p.sig.history[p.sig.history.length-1].toFixed(p.sig.dec)}${p.sig.unit} → Warn at ${p.sig.warnAt}${p.sig.unit} · Trend slope: ${(calcSlope(p.sig.history)+p.sig.trendSlope*0.3).toFixed(3)}/reading</div>
+        </div>
+      </div>`;
+    });
+    if(!html) html = `<div style="font-family:var(--mono);font-size:10.5px;color:var(--phosphor);padding:8px 0">◆ No threshold breaches predicted in current trend window</div>`;
+    return html;
+  })();
+
+  // Maintenance schedule recommendations
+  const maintItems = [];
+  // Already breached/warning signals → urgent
+  alreadyBreached.forEach(sig => {
+    maintItems.push({
+      type:'urgent', date:'Immediate',
+      desc:`${sig.name} has ${sig.state==='alert'?'exceeded the alert threshold':'crossed the warn threshold'} — maintenance intervention required now.`,
+      action:'Raise work order now'
+    });
+  });
+  // Future predictions
+  validPreds.forEach(p=>{
+    if(p.sig.state !== 'ok') return; // already handled above
+    if(p.level==='critical'||p.level==='high'){
+      maintItems.push({ type:'urgent', date:'Within '+p.days+'d',
+        desc:`${p.sig.name} projected to reach warn threshold in ~${p.days} days. Schedule inspection before then.`,
+        action:'Raise work order now' });
+    } else if(p.level==='medium'){
+      const d=new Date('2025-03-18'); d.setDate(d.getDate()+Math.round(parseFloat(p.days)));
+      maintItems.push({ type:'planned', date:d.toISOString().slice(0,10),
+        desc:`Schedule ${p.sig.name} inspection before projected warn breach in ~${p.days} days.`,
+        action:'Add to PM schedule' });
+    }
+  });
+  if(!maintItems.length){
+    const d=new Date('2025-03-18'); d.setDate(d.getDate()+90);
+    maintItems.push({ type:'monitor', date:d.toISOString().slice(0,10), desc:`Next scheduled PM — all signals nominal. Continue monitoring at current interval.`, action:'Confirm PM calendar' });
+  }
+  document.getElementById('maint-schedule').innerHTML = maintItems.slice(0,3).map(m=>`
+    <div class="ms-item">
+      <div class="ms-top">
+        <span class="ms-type ${m.type}">${m.type.toUpperCase()}</span>
+        <span class="ms-date">${m.date}</span>
+      </div>
+      <div class="ms-desc">${m.desc}</div>
+      <div class="ms-action" onclick="showToast('◆','${m.action}','Action logged for ${machine.id}.')">→ ${m.action}</div>
+    </div>`).join('');
+
+  // Fleet health — all machines
+  document.getElementById('fleet-health').innerHTML = MACHINES.map(m=>{
+    const alertC = m.signals.filter(s=>s.state==='alert').length;
+    const warnC = m.signals.filter(s=>s.state==='warn').length;
+    const okC = m.signals.length - alertC - warnC;
+    const color = alertC?'var(--red)':warnC?'var(--amber)':'var(--phosphor)';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line2);cursor:pointer" onclick="switchMachine('${m.id}')">
+      <div style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--ink-s);flex:1">${m.id}</div>
+      <div style="display:flex;gap:5px">
+        ${alertC?`<span style="font-family:var(--mono);font-size:9px;background:var(--red-dim);color:var(--red);padding:1px 6px;border-radius:3px">${alertC} alert</span>`:''}
+        ${warnC?`<span style="font-family:var(--mono);font-size:9px;background:var(--amber-dim);color:var(--amber);padding:1px 6px;border-radius:3px">${warnC} warn</span>`:''}
+        ${!alertC&&!warnC?`<span style="font-family:var(--mono);font-size:9px;background:var(--ph-dim);color:var(--phosphor);padding:1px 6px;border-radius:3px">all nominal</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderHeader(){
+  let ok=0, warn=0, alert=0;
+  MACHINES.forEach(m=>m.signals.forEach(s=>{ if(s.state==='alert')alert++; else if(s.state==='warn')warn++; else ok++; }));
+  document.getElementById('hdr-signals').textContent=ok;
+  document.getElementById('hdr-warn').textContent=warn;
+  document.getElementById('hdr-alert').textContent=alert;
+  document.getElementById('hdr-signals').style.color=ok>0?'var(--phosphor)':'var(--ink-m)';
+}
+
+/* ════════════════════════════════════════════════════════
+   SIGNAL DETAIL DRAWER
+   ════════════════════════════════════════════════════════ */
+
+function openSignalDrawer(machineId, signalId){
+  const machine = MACHINES.find(m=>m.id===machineId);
+  const sig = machine.signals.find(s=>s.id===signalId);
+  if(!sig) return;
+
+  const last = sig.history[sig.history.length-1];
+  const breach = predictBreachReadings(sig);
+  const breachDays = breach ? readingsToDays(breach) : null;
+  const slope = calcSlope(sig.history) + sig.trendSlope*0.3;
+  const recClass = sig.state==='alert'?'alert':sig.state==='warn'?'warn':'ok';
+
+  document.getElementById('d-eyebrow').textContent = `${machine.id} · ${sig.fieldRef}`;
+  document.getElementById('d-title').textContent = sig.name;
+  document.getElementById('d-sub').textContent = `Current: ${last.toFixed(sig.dec)}${sig.unit} · State: ${sig.state.toUpperCase()}`;
+
+  const recText = sig.state==='alert'
+    ? `<b>Signal has breached the alert threshold (${sig.alertAt}${sig.unit}).</b> Immediate maintenance intervention is required. Every hour of unplanned downtime in a regulated pharma plant generates both a production loss and a GMP deviation record. At $532,000/hr industry average (2024), delay is costly. ${sig.baseNote}`
+    : sig.state==='warn'
+    ? `<b>Signal is trending toward the alert threshold.</b> AI linear regression projects breach in approximately <b>${breachDays} days</b> if the current trend continues. This is the optimal window for proactive intervention — planned maintenance has 40–70% lower cost impact than reactive repair. ${sig.baseNote}`
+    : breachDays
+    ? `Signal is currently nominal but the AI trend projection shows it will approach the warn threshold in approximately <b>${breachDays} days</b>. No immediate action required — add to the monitoring watchlist and schedule inspection at next PM opportunity. ${sig.baseNote}`
+    : `Signal is nominal with no threshold breach predicted in the current trend window. ${sig.baseNote}`;
+
+  document.getElementById('d-body').innerHTML = `
+    <div class="d-sec">
+      <div class="d-sec-title">Signal Parameters</div>
+      <div class="d-row"><div class="d-key">Signal</div><div class="d-val">${sig.name}</div></div>
+      <div class="d-row"><div class="d-key">Current value</div><div class="d-val" style="color:${sig.state==='alert'?'var(--red)':sig.state==='warn'?'var(--amber)':'var(--phosphor)'}">${last.toFixed(sig.dec)} ${sig.unit}</div></div>
+      <div class="d-row"><div class="d-key">Dataset baseline (mean)</div><div class="d-val">${sig.mean} ${sig.unit}</div></div>
+      <div class="d-row"><div class="d-key">Warn threshold</div><div class="d-val" style="color:var(--amber)">${sig.warnAt} ${sig.unit}</div></div>
+      <div class="d-row"><div class="d-key">Alert threshold</div><div class="d-val" style="color:var(--red)">${sig.alertAt} ${sig.unit}</div></div>
+      <div class="d-row"><div class="d-key">Trend slope (current)</div><div class="d-val" style="color:${Math.abs(slope)>0.5?'var(--amber)':'var(--ink-s)'}">${slope>0?'+':''}${slope.toFixed(3)}/reading</div></div>
+      <div class="d-row"><div class="d-key">Predicted warn breach</div><div class="d-val" style="color:${sig.state==='alert'?'var(--red)':sig.state==='warn'?'var(--amber)':breachDays&&parseFloat(breachDays)<3?'var(--red)':breachDays?'var(--amber)':'var(--phosphor)'}">${sig.state==='alert'?'Already exceeded':sig.state==='warn'?'Currently active':breachDays?'~'+breachDays+' days':'Not trending'}</div></div>
+      <div class="d-row"><div class="d-key">History readings</div><div class="d-val">${sig.history.length} readings</div></div>
+      <div class="d-row"><div class="d-key">Field reference</div><div class="d-val" style="color:var(--violet);font-size:9.5px;text-align:right;max-width:220px;line-height:1.3">${sig.fieldRef}</div></div>
+    </div>
+    <div class="d-sec">
+      <div class="d-sec-title">Data Source Note</div>
+      <div style="font-size:11.5px;color:var(--ink-s);line-height:1.6;background:var(--card2);border:1px solid var(--line);border-radius:7px;padding:11px 13px">${sig.baseNote}</div>
+    </div>
+    <div class="d-sec">
+      <div class="d-sec-title">AI Predictive Maintenance Recommendation</div>
+      <div class="ai-rec-box ${recClass}">
+        <span class="arc-label">◆ AI · Predictive Signal Analysis</span>
+        <div class="arc-text">${recText}</div>
+      </div>
+    </div>
+    <div class="d-actions">
+      <button class="d-btn d-btn-primary" onclick="showToast('◆','Work order raised','Maintenance scheduled for ${machine.id} — ${sig.name}.');closeDrawer()">Raise Work Order</button>
+      <button class="d-btn d-btn-secondary" onclick="closeDrawer()">Close</button>
+    </div>`;
+
+  document.getElementById('scrim').classList.add('open');
+}
+
+function closeDrawer(e){
+  if(!e||e.target.id==='scrim') document.getElementById('scrim').classList.remove('open');
+}
+
+let toastTimer;
+function showToast(icon,title,msg){
+  document.getElementById('t-icon').textContent=icon;
+  document.getElementById('t-title').textContent=title;
+  document.getElementById('t-msg').textContent=msg;
+  const el=document.getElementById('toast');
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),4200);
+}
+
+/* ════════════════════════════════════════════════════════
+   INIT + TICK LOOP
+   ════════════════════════════════════════════════════════ */
+
+renderTabs();
+renderMachine(activeMachineId);
+renderAI();
+renderHeader();
+setInterval(tick, 3000);
+window.addEventListener('resize', ()=>{ renderMachine(activeMachineId); });
+</script>
+</body>
+</html>
+

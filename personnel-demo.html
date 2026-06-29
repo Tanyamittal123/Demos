@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personnel Intelligence — ISA-95 Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0C1219;
+  --bg2:       #0A0F16;
+  --card:      #111D2E;
+  --card2:     #162030;
+  --line:      #1E3A5F;
+  --line2:     #243850;
+  --blue:      #4FC3F7;
+  --blue-dim:  rgba(79,195,247,0.10);
+  --blue-glow: rgba(79,195,247,0.25);
+  --amber:     #FFA726;
+  --amber-dim: rgba(255,167,38,0.10);
+  --red:       #EF5350;
+  --red-dim:   rgba(239,83,80,0.10);
+  --green:     #66BB6A;
+  --green-dim: rgba(102,187,106,0.10);
+  --purple:    #B39DDB;
+  --purple-dim:rgba(179,157,219,0.12);
+  --ink:       #E8F0FE;
+  --ink-s:     #90A4C0;
+  --ink-m:     #4A6280;
+  --mono:      'JetBrains Mono', monospace;
+  --disp:      'DM Serif Display', serif;
+  --body:      'DM Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  min-height: 100vh;
+  font-size: 13px;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 3px; }
+
+/* ── HEADER ── */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--line);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.hdr-left { display: flex; align-items: center; gap: 14px; }
+.hdr-back {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-m);
+  letter-spacing: 1px; text-decoration: none;
+  border: 1px solid var(--line); padding: 4px 10px; border-radius: 4px;
+  transition: all .15s;
+}
+.hdr-back:hover { color: var(--blue); border-color: var(--blue); }
+.hdr-schema {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-m);
+  letter-spacing: 0.8px;
+}
+.hdr-schema b { color: var(--blue); }
+.hdr-title { font-family: var(--disp); font-size: 22px; color: var(--ink); }
+.hdr-title span { color: var(--blue); }
+.hdr-right { display: flex; align-items: center; gap: 18px; }
+.hdr-stat { text-align: center; }
+.hdr-stat-val { font-family: var(--mono); font-size: 17px; font-weight: 600; }
+.hdr-stat-lbl { font-size: 9.5px; color: var(--ink-m); letter-spacing: 0.8px; text-transform: uppercase; margin-top: 1px; }
+.live-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 1.2px;
+  color: var(--blue); border: 1px solid rgba(79,195,247,0.3);
+  padding: 5px 12px; border-radius: 14px;
+}
+.live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--blue); animation: blink 1.8s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+.col {
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+  padding: 18px 16px;
+}
+.col:last-child { border-right: none; }
+.col-title {
+  font-family: var(--mono); font-size: 9.5px; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--ink-m);
+  margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.col-title::after { content:''; flex:1; height:1px; background:var(--line); }
+
+/* ── CLASS TREE (Left column) ── */
+.tree-node {
+  margin-bottom: 6px;
+  position: relative;
+}
+.tree-card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 9px; padding: 11px 13px;
+  cursor: pointer; transition: all .18s;
+  position: relative;
+}
+.tree-card:hover { border-color: var(--purple); }
+.tree-card.selected { border-color: var(--blue); background: var(--blue-dim); }
+.tree-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+.tree-class-id { font-family: var(--mono); font-size: 9px; color: var(--purple); letter-spacing: 0.5px; margin-bottom: 3px; }
+.tree-class-name { font-size: 12.5px; font-weight: 600; line-height: 1.3; }
+.tree-member-count {
+  font-family: var(--mono); font-size: 10px;
+  background: var(--purple-dim); color: var(--purple);
+  border: 1px solid rgba(179,157,219,0.25);
+  padding: 2px 7px; border-radius: 10px; flex-shrink: 0;
+}
+.tree-props { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+.tree-prop-tag {
+  font-family: var(--mono); font-size: 9px;
+  background: var(--card2); color: var(--ink-s);
+  border: 1px solid var(--line2); padding: 2px 6px; border-radius: 3px;
+}
+.tree-inherits {
+  font-size: 10px; color: var(--ink-m); margin-top: 5px;
+  display: flex; align-items: center; gap: 4px;
+}
+.tree-inherits::before { content: '↗'; font-size: 9px; color: var(--purple); }
+
+/* children indented */
+.tree-children { margin-left: 16px; margin-top: 6px; position: relative; }
+.tree-children::before {
+  content: ''; position: absolute; left: -10px; top: 0; bottom: 12px;
+  width: 1px; background: var(--line2);
+}
+.tree-children .tree-node::before {
+  content: ''; position: absolute; left: -10px; top: 20px;
+  width: 10px; height: 1px; background: var(--line2);
+}
+
+/* ── PERSON CARDS (Centre column) ── */
+.roster-filters {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.rf-btn {
+  font-family: var(--mono); font-size: 9.5px; padding: 4px 12px;
+  border-radius: 14px; border: 1px solid var(--line); background: transparent;
+  color: var(--ink-s); cursor: pointer; transition: all .15s; letter-spacing: 0.4px;
+}
+.rf-btn:hover { border-color: var(--blue); color: var(--blue); }
+.rf-btn.active { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+
+.person-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.person-card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 11px; padding: 14px;
+  cursor: pointer; transition: all .2s;
+  position: relative; overflow: hidden;
+}
+.person-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--green); transition: background .3s;
+}
+.person-card.warn::before { background: var(--amber); }
+.person-card.alert::before { background: var(--red); }
+.person-card.inactive::before { background: var(--ink-m); }
+.person-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.35); }
+.person-card.warn { border-color: rgba(255,167,38,0.3); }
+.person-card.alert { border-color: rgba(239,83,80,0.35); animation: card-pulse 2s infinite; }
+@keyframes card-pulse { 0%,100%{box-shadow:0 0 0 rgba(239,83,80,0)} 50%{box-shadow:0 0 12px rgba(239,83,80,0.25)} }
+
+.pc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.pc-avatar {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; font-family: var(--mono);
+  flex-shrink: 0;
+}
+.pc-status-badge {
+  font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.badge-ok { background: var(--green-dim); color: var(--green); border: 1px solid rgba(102,187,106,0.3); }
+.badge-warn { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,167,38,0.3); }
+.badge-alert { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,83,80,0.3); }
+.badge-inactive { background: rgba(74,98,128,0.15); color: var(--ink-m); border: 1px solid var(--line); }
+
+.pc-id { font-family: var(--mono); font-size: 9px; color: var(--ink-m); margin-bottom: 2px; }
+.pc-name { font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+.pc-class { font-size: 10.5px; color: var(--purple); }
+
+.pc-divider { height: 1px; background: var(--line); margin: 10px 0; }
+
+.pc-field { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.pc-field:last-child { margin-bottom: 0; }
+.pc-field-key { font-size: 10px; color: var(--ink-m); }
+.pc-field-val { font-family: var(--mono); font-size: 10.5px; font-weight: 500; }
+.val-ok { color: var(--green); }
+.val-warn { color: var(--amber); }
+.val-alert { color: var(--red); }
+.val-blue { color: var(--blue); }
+.val-muted { color: var(--ink-m); }
+
+.pc-props { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.pc-prop {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--card2); border-radius: 5px; padding: 5px 8px;
+  border: 1px solid var(--line);
+}
+.pc-prop-key { font-size: 9.5px; color: var(--ink-s); }
+.pc-prop-val { font-family: var(--mono); font-size: 9.5px; }
+
+/* ── AI PANEL (Right column) ── */
+.ai-section { margin-bottom: 18px; }
+.ai-section-title {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.3px; color: var(--ink-m); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 7px;
+}
+.ai-section-title::after { content:''; flex:1; height:1px; background:var(--line); }
+
+.ai-summary {
+  background: var(--blue-dim); border: 1px solid rgba(79,195,247,0.25);
+  border-radius: 9px; padding: 13px; margin-bottom: 14px;
+}
+.ai-summary-head {
+  font-family: var(--mono); font-size: 9px; color: var(--blue);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
+}
+.ai-summary-text { font-size: 12px; color: var(--ink-s); line-height: 1.6; }
+.ai-summary-text b { color: var(--ink); }
+
+.ai-flag {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 9px; padding: 11px 13px; margin-bottom: 8px;
+  border-left: 3px solid;
+  transition: all .2s;
+}
+.ai-flag:hover { transform: translateX(2px); }
+.ai-flag.alert { border-left-color: var(--red); }
+.ai-flag.warn { border-left-color: var(--amber); }
+.ai-flag.info { border-left-color: var(--blue); }
+.ai-flag.resolved { border-left-color: var(--green); opacity: 0.7; }
+
+.ai-flag-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.ai-flag-tag {
+  font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.tag-alert { background: var(--red-dim); color: var(--red); }
+.tag-warn { background: var(--amber-dim); color: var(--amber); }
+.tag-info { background: var(--blue-dim); color: var(--blue); }
+.tag-resolved { background: var(--green-dim); color: var(--green); }
+
+.ai-flag-person { font-family: var(--mono); font-size: 9.5px; color: var(--ink-s); }
+.ai-flag-msg { font-size: 11.5px; color: var(--ink-s); line-height: 1.5; }
+.ai-flag-msg b { color: var(--ink); }
+.ai-flag-action {
+  margin-top: 6px; font-size: 10.5px; color: var(--blue);
+  display: flex; align-items: center; gap: 4px; cursor: pointer;
+}
+.ai-flag-time { font-family: var(--mono); font-size: 9px; color: var(--ink-m); margin-top: 4px; }
+
+.risk-gauge { margin-bottom: 14px; }
+.rg-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.rg-label { font-size: 11px; color: var(--ink-s); min-width: 100px; }
+.rg-bar { flex: 1; height: 5px; background: var(--card2); border-radius: 3px; overflow: hidden; }
+.rg-fill { height: 100%; border-radius: 3px; transition: width .6s; }
+.rg-pct { font-family: var(--mono); font-size: 10px; color: var(--ink-m); min-width: 28px; text-align: right; }
+
+.coverage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 14px; }
+.cov-cell {
+  background: var(--card); border: 1px solid var(--line); border-radius: 7px;
+  padding: 9px 10px; text-align: center;
+}
+.cov-val { font-family: var(--mono); font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+.cov-lbl { font-size: 9.5px; color: var(--ink-m); line-height: 1.3; }
+
+.isa-note {
+  background: var(--card2); border: 1px solid var(--line); border-radius: 7px;
+  padding: 10px 12px; font-size: 10.5px; color: var(--ink-m); line-height: 1.6;
+}
+.isa-note b { color: var(--ink-s); }
+
+/* ── DRAWER ── */
+.drawer-scrim {
+  position: fixed; inset: 0; background: rgba(6,10,18,0.7);
+  backdrop-filter: blur(4px); z-index: 100;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.drawer-scrim.open { opacity: 1; pointer-events: all; }
+.drawer {
+  position: fixed; top: 56px; right: 0; bottom: 0; width: 420px;
+  background: var(--card); border-left: 1px solid var(--line);
+  transform: translateX(100%); transition: transform .28s cubic-bezier(.2,.8,.2,1);
+  z-index: 101; overflow-y: auto;
+}
+.drawer-scrim.open .drawer { transform: translateX(0); }
+.drawer-head {
+  padding: 20px 22px 14px; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; background: var(--card); z-index: 2;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.drawer-close {
+  width: 28px; height: 28px; border-radius: 6px; background: var(--card2);
+  border: 1px solid var(--line); color: var(--ink-s); font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all .15s;
+}
+.drawer-close:hover { border-color: var(--blue); color: var(--ink); }
+.drawer-body { padding: 18px 22px 28px; }
+.d-eyebrow { font-family: var(--mono); font-size: 9.5px; color: var(--ink-m); letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 4px; }
+.d-name { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+.d-class { font-size: 12px; color: var(--purple); }
+
+.d-sec { margin-bottom: 18px; }
+.d-sec-title {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--ink-m); margin-bottom: 9px;
+  display: flex; align-items: center; gap: 6px;
+}
+.d-sec-title::after { content:''; flex:1; height:1px; background:var(--line); }
+
+.d-field-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 0; border-bottom: 1px solid rgba(30,58,95,0.4); font-size: 12px;
+}
+.d-field-row:last-child { border-bottom: none; }
+.d-field-key { color: var(--ink-m); font-size: 11px; }
+.d-field-val { font-family: var(--mono); font-size: 11px; font-weight: 500; }
+
+.prop-block {
+  background: var(--card2); border: 1px solid var(--line); border-radius: 7px;
+  padding: 10px 12px; margin-bottom: 7px;
+}
+.prop-block-name { font-family: var(--mono); font-size: 10px; color: var(--blue); margin-bottom: 5px; }
+.prop-block-row { display: flex; justify-content: space-between; font-size: 11px; padding: 3px 0; }
+.prop-block-key { color: var(--ink-m); }
+.prop-block-val { font-family: var(--mono); font-size: 10.5px; }
+
+.ai-rec-box {
+  background: var(--blue-dim); border: 1px solid rgba(79,195,247,0.25);
+  border-radius: 8px; padding: 12px 14px; margin-top: 4px;
+  font-size: 11.5px; color: var(--ink-s); line-height: 1.6;
+}
+.ai-rec-box .label { font-family: var(--mono); font-size: 9px; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px; }
+.ai-rec-box b { color: var(--ink); }
+
+.d-actions { display: flex; gap: 8px; margin-top: 16px; }
+.d-btn {
+  padding: 8px 16px; border-radius: 7px; font-size: 12px; font-weight: 500;
+  border: none; cursor: pointer; transition: all .15s; font-family: var(--body);
+}
+.d-btn-primary { background: var(--blue); color: #051824; font-weight: 600; }
+.d-btn-primary:hover { background: #81D4FA; }
+.d-btn-secondary { background: var(--card2); color: var(--ink-s); border: 1px solid var(--line); }
+.d-btn-secondary:hover { border-color: var(--blue); color: var(--ink); }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 22px; right: 22px; max-width: 320px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 9px;
+  padding: 12px 16px; display: flex; gap: 10px;
+  transform: translateY(14px); opacity: 0; transition: all .3s;
+  z-index: 200; pointer-events: none; font-size: 11.5px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast b { display: block; font-size: 12.5px; margin-bottom: 2px; color: var(--ink); }
+.toast span { color: var(--ink-s); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <a class="hdr-back" href="index.html">← Suite</a>
+    <div class="hdr-title">Personnel <span>Intelligence</span></div>
+    <div class="hdr-schema">ISA-95 · <b>B2MML-Personnel.xsd</b> · PersonnelInformation model</div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-stat">
+      <div class="hdr-stat-val" id="hdr-total" style="color:var(--blue)">0</div>
+      <div class="hdr-stat-lbl">Total Personnel</div>
+    </div>
+    <div class="hdr-stat">
+      <div class="hdr-stat-val" id="hdr-qualified" style="color:var(--green)">0</div>
+      <div class="hdr-stat-lbl">Fully Qualified</div>
+    </div>
+    <div class="hdr-stat">
+      <div class="hdr-stat-val" id="hdr-flags" style="color:var(--amber)">0</div>
+      <div class="hdr-stat-lbl">Active Flags</div>
+    </div>
+    <div class="live-pill"><div class="live-dot"></div>Live</div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: PersonnelClass hierarchy -->
+  <div class="col" id="col-classes">
+    <div class="col-title">PersonnelClass Hierarchy</div>
+
+    <!-- Rendered by JS as a tree -->
+    <div id="class-tree"></div>
+
+    <div style="margin-top:16px">
+      <div class="isa-note">
+        <b>ISA-95 schema note:</b> A PersonnelClass groups people with similar characteristics. Any person may belong to zero or more classes. A class may inherit from another via <b>PersonnelClassBaseID</b>, forming a specialisation hierarchy.
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTRE: Person roster -->
+  <div class="col" id="col-roster">
+    <div class="col-title">Person Roster — PersonnelInformation record</div>
+    <div class="roster-filters" id="roster-filters">
+      <button class="rf-btn active" data-filter="all" onclick="filterRoster(this,'all')">All</button>
+      <button class="rf-btn" data-filter="alert" onclick="filterRoster(this,'alert')">Alert</button>
+      <button class="rf-btn" data-filter="warn" onclick="filterRoster(this,'warn')">Warning</button>
+      <button class="rf-btn" data-filter="ok" onclick="filterRoster(this,'ok')">Qualified</button>
+      <button class="rf-btn" data-filter="inactive" onclick="filterRoster(this,'inactive')">Inactive</button>
+    </div>
+    <div class="person-grid" id="person-grid"></div>
+  </div>
+
+  <!-- RIGHT: AI interventions -->
+  <div class="col" id="col-ai">
+    <div class="col-title">AI Interventions</div>
+
+    <div class="ai-summary" id="ai-summary">
+      <div class="ai-summary-head">◆ AI · Workforce Intelligence</div>
+      <div class="ai-summary-text" id="ai-summary-text">Analysing personnel records…</div>
+    </div>
+
+    <div class="ai-section">
+      <div class="ai-section-title">Coverage at a Glance</div>
+      <div class="coverage-grid" id="coverage-grid"></div>
+    </div>
+
+    <div class="ai-section">
+      <div class="ai-section-title">Risk Assessment</div>
+      <div class="risk-gauge" id="risk-gauge"></div>
+    </div>
+
+    <div class="ai-section">
+      <div class="ai-section-title">Active Flags</div>
+      <div id="ai-flags-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PERSON DETAIL DRAWER -->
+<div class="drawer-scrim" id="drawer-scrim" onclick="closeDrawer(event)">
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div>
+        <div class="d-eyebrow" id="d-eyebrow"></div>
+        <div class="d-name" id="d-name"></div>
+        <div class="d-class" id="d-class"></div>
+      </div>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body" id="d-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div style="font-size:16px;flex-shrink:0" id="toast-icon">◆</div>
+  <div><b id="toast-title"></b><span id="toast-msg"></span></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   ISA-95 B2MML-Personnel.xsd DATA MODEL
+   Three core types from the schema:
+   1. PersonnelInformation  — top-level container
+   2. PersonnelClass        — grouping with required properties
+   3. Person                — individual with PersonProperty fields
+   ═══════════════════════════════════════════════════ */
+
+// ── PersonnelClass hierarchy (ISA-95: PersonnelClassBaseID defines inheritance)
+const CLASSES = [
+  {
+    id: 'PROD-OPS', name: 'Production Operator',
+    desc: 'Base class for all production floor personnel',
+    baseId: null,
+    requiredProperties: ['GMP-Awareness', 'SafetyInduction', 'CleanroomAccess'],
+    hierarchyScope: 'Site:LekPharma'
+  },
+  {
+    id: 'BLEND-OPS', name: 'Blending Operator',
+    desc: 'Qualified to operate blending equipment and execute blending SOPs',
+    baseId: 'PROD-OPS',
+    requiredProperties: ['GMP-Awareness', 'BlendingCertification', 'SOP-MFG-003', 'WeighingCompetency'],
+    hierarchyScope: 'Area:SolidDosage'
+  },
+  {
+    id: 'SR-BLEND-OPS', name: 'Senior Blending Operator',
+    desc: 'Leads blending operations, can verify junior operators',
+    baseId: 'BLEND-OPS',
+    requiredProperties: ['GMP-Awareness', 'BlendingCertification', 'SOP-MFG-003', 'WeighingCompetency', 'VerifierStatus'],
+    hierarchyScope: 'Area:SolidDosage'
+  },
+  {
+    id: 'GRAN-OPS', name: 'Granulation Operator',
+    desc: 'Qualified to operate granulators and execute granulation procedures',
+    baseId: 'PROD-OPS',
+    requiredProperties: ['GMP-Awareness', 'GranulationCertification', 'SOP-MFG-001', 'SOP-MFG-002'],
+    hierarchyScope: 'Area:SolidDosage'
+  },
+  {
+    id: 'QA-REVIEWER', name: 'QA Reviewer',
+    desc: 'Authorised to perform quality review and batch release activities',
+    baseId: null,
+    requiredProperties: ['QA-Certification', '21CFR-Part11-Training', 'BatchReviewCompetency', 'DeviationInvestigation'],
+    hierarchyScope: 'Area:Quality'
+  },
+  {
+    id: 'SHIFT-LEAD', name: 'Shift Leader',
+    desc: 'Manages production personnel across a shift, authorises deviations',
+    baseId: 'PROD-OPS',
+    requiredProperties: ['GMP-Awareness', 'LeadershipCertification', 'DeviationAuthorisation', 'ShiftHandoverCompetency'],
+    hierarchyScope: 'Site:LekPharma'
+  }
+];
+
+// ── Person records (ISA-95: PersonType with PersonProperty sub-objects)
+// PersonProperty stores qualifications as nested key-value pairs
+// EffectiveEndDate from schema = when a person's certification/active status ends
+const today = new Date('2025-03-18');
+function daysFromNow(days){ const d=new Date(today); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); }
+
+const PERSONS = [
+  {
+    id:'OP-101', name:'Ananya Sharma',
+    personnelClassIds:['GRAN-OPS','PROD-OPS'],
+    effectiveStartDate:'2020-06-01', effectiveEndDate: null,
+    operationalLocation:'Granulation Station A',
+    hierarchyScope:'Area:SolidDosage',
+    properties:[
+      { id:'GranulationCertification', value:'CERTIFIED', subProps:{ ExpiryDate: daysFromNow(180), IssuingBody:'InternalQA', Level:'Competent' }},
+      { id:'SOP-MFG-001', value:'COMPLETE', subProps:{ CompletedDate:'2024-11-10', Score:'96%' }},
+      { id:'SOP-MFG-002', value:'COMPLETE', subProps:{ CompletedDate:'2024-11-12', Score:'94%' }},
+      { id:'GMP-Awareness', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(210), LastRefreshed:'2024-09-01' }},
+      { id:'CleanroomAccess', value:'ACTIVE', subProps:{ GowningLevel:'Grade-C' }},
+    ],
+    avatar:'AS', avatarBg:'#1A3A5C'
+  },
+  {
+    id:'OP-114', name:'Rajan Mehta',
+    personnelClassIds:['BLEND-OPS','PROD-OPS'],
+    effectiveStartDate:'2019-03-15', effectiveEndDate: null,
+    operationalLocation:'Blending Station B',
+    hierarchyScope:'Area:SolidDosage',
+    properties:[
+      { id:'BlendingCertification', value:'EXPIRING', subProps:{ ExpiryDate: daysFromNow(6), IssuingBody:'InternalQA', Level:'Competent' }},
+      { id:'SOP-MFG-003', value:'COMPLETE', subProps:{ CompletedDate:'2024-10-05', Score:'91%' }},
+      { id:'WeighingCompetency', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(90) }},
+      { id:'GMP-Awareness', value:'EXPIRING', subProps:{ ExpiryDate: daysFromNow(8), LastRefreshed:'2024-03-20' }},
+      { id:'CleanroomAccess', value:'ACTIVE', subProps:{ GowningLevel:'Grade-C' }},
+    ],
+    avatar:'RM', avatarBg:'#2A3520'
+  },
+  {
+    id:'OP-203', name:'Priya Krishnan',
+    personnelClassIds:['SR-BLEND-OPS','BLEND-OPS','PROD-OPS'],
+    effectiveStartDate:'2017-08-20', effectiveEndDate: null,
+    operationalLocation:'Blending Station A',
+    hierarchyScope:'Area:SolidDosage',
+    properties:[
+      { id:'BlendingCertification', value:'CERTIFIED', subProps:{ ExpiryDate: daysFromNow(320), IssuingBody:'InternalQA', Level:'Senior' }},
+      { id:'SOP-MFG-003', value:'COMPLETE', subProps:{ CompletedDate:'2024-12-01', Score:'98%' }},
+      { id:'WeighingCompetency', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(280) }},
+      { id:'GMP-Awareness', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(295), LastRefreshed:'2024-09-15' }},
+      { id:'VerifierStatus', value:'ACTIVE', subProps:{ AuthorisedBy:'QA-Director', Since:'2022-01-01' }},
+      { id:'CleanroomAccess', value:'ACTIVE', subProps:{ GowningLevel:'Grade-B' }},
+    ],
+    avatar:'PK', avatarBg:'#1A2A4A'
+  },
+  {
+    id:'OP-318', name:'Vikram Tiwari',
+    personnelClassIds:['QA-REVIEWER'],
+    effectiveStartDate:'2021-01-10', effectiveEndDate: null,
+    operationalLocation:'QC Laboratory',
+    hierarchyScope:'Area:Quality',
+    properties:[
+      { id:'QA-Certification', value:'EXPIRED', subProps:{ ExpiryDate: daysFromNow(-12), IssuingBody:'ExternalBody', Level:'Competent' }},
+      { id:'21CFR-Part11-Training', value:'COMPLETE', subProps:{ CompletedDate:'2024-06-30', Score:'89%' }},
+      { id:'BatchReviewCompetency', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(156) }},
+      { id:'DeviationInvestigation', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(200) }},
+    ],
+    avatar:'VT', avatarBg:'#2A1A3C'
+  },
+  {
+    id:'SL-002', name:'Deepa Nair',
+    personnelClassIds:['SHIFT-LEAD','PROD-OPS'],
+    effectiveStartDate:'2016-05-01', effectiveEndDate: null,
+    operationalLocation:'Production Floor — Shift B',
+    hierarchyScope:'Site:LekPharma',
+    properties:[
+      { id:'GMP-Awareness', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(189), LastRefreshed:'2024-09-01' }},
+      { id:'LeadershipCertification', value:'CERTIFIED', subProps:{ ExpiryDate: daysFromNow(402), IssuingBody:'HR-Training' }},
+      { id:'DeviationAuthorisation', value:'ACTIVE', subProps:{ Level:'Minor-Moderate', AuthorisedBy:'QA-Director' }},
+      { id:'ShiftHandoverCompetency', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(215) }},
+      { id:'CleanroomAccess', value:'ACTIVE', subProps:{ GowningLevel:'Grade-B' }},
+    ],
+    avatar:'DN', avatarBg:'#2A1525'
+  },
+  {
+    id:'OP-422', name:'Arjun Patel',
+    personnelClassIds:['GRAN-OPS','PROD-OPS'],
+    effectiveStartDate:'2023-02-14', effectiveEndDate: null,
+    operationalLocation:'Granulation Station B',
+    hierarchyScope:'Area:SolidDosage',
+    properties:[
+      { id:'GranulationCertification', value:'IN-PROGRESS', subProps:{ ExpiryDate:'N/A', Completion:'72%', TargetDate: daysFromNow(21) }},
+      { id:'SOP-MFG-001', value:'COMPLETE', subProps:{ CompletedDate:'2025-01-20', Score:'88%' }},
+      { id:'SOP-MFG-002', value:'PENDING', subProps:{ ScheduledDate: daysFromNow(14) }},
+      { id:'GMP-Awareness', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(330), LastRefreshed:'2024-12-01' }},
+      { id:'CleanroomAccess', value:'ACTIVE', subProps:{ GowningLevel:'Grade-C' }},
+    ],
+    avatar:'AP', avatarBg:'#1A3030'
+  },
+  {
+    id:'OP-507', name:'Kavitha Reddy',
+    personnelClassIds:['BLEND-OPS','PROD-OPS'],
+    effectiveStartDate:'2022-07-01', effectiveEndDate:'2025-03-31',
+    operationalLocation:'On Leave',
+    hierarchyScope:'Area:SolidDosage',
+    properties:[
+      { id:'BlendingCertification', value:'CERTIFIED', subProps:{ ExpiryDate: daysFromNow(260), IssuingBody:'InternalQA', Level:'Competent' }},
+      { id:'SOP-MFG-003', value:'COMPLETE', subProps:{ CompletedDate:'2024-08-15', Score:'93%' }},
+      { id:'WeighingCompetency', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(310) }},
+      { id:'GMP-Awareness', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(290) }},
+      { id:'CleanroomAccess', value:'SUSPENDED', subProps:{ Reason:'Extended Leave', ReinstatedBy:'N/A' }},
+    ],
+    avatar:'KR', avatarBg:'#2A2A1A'
+  },
+  {
+    id:'QA-071', name:'Suresh Bhat',
+    personnelClassIds:['QA-REVIEWER'],
+    effectiveStartDate:'2018-11-01', effectiveEndDate: null,
+    operationalLocation:'Quality Review Office',
+    hierarchyScope:'Area:Quality',
+    properties:[
+      { id:'QA-Certification', value:'CERTIFIED', subProps:{ ExpiryDate: daysFromNow(145), IssuingBody:'ExternalBody', Level:'Senior' }},
+      { id:'21CFR-Part11-Training', value:'COMPLETE', subProps:{ CompletedDate:'2024-09-15', Score:'95%' }},
+      { id:'BatchReviewCompetency', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(145) }},
+      { id:'DeviationInvestigation', value:'CURRENT', subProps:{ ExpiryDate: daysFromNow(200) }},
+    ],
+    avatar:'SB', avatarBg:'#1A2838'
+  }
+];
+
+/* ═══════════════════════════════════════════════════
+   STATUS LOGIC — derived from PersonProperty values
+   This is the "AI" layer: reads ISA-95 PersonProperty
+   fields and classifies each person's overall status
+   ═══════════════════════════════════════════════════ */
+
+function getPersonStatus(person){
+  // Inactive if EffectiveEndDate is past or near
+  if(person.effectiveEndDate){
+    const end = new Date(person.effectiveEndDate);
+    if(end <= new Date(today)) return 'inactive';
+  }
+  // Check each PersonProperty value
+  for(const prop of person.properties){
+    if(prop.value === 'EXPIRED') return 'alert';
+    if(prop.value === 'EXPIRING') return 'warn';
+  }
+  // Check if any required property for their class is missing/incomplete
+  const classIds = person.personnelClassIds;
+  for(const cid of classIds){
+    const cls = CLASSES.find(c=>c.id===cid);
+    if(!cls) continue;
+    for(const req of cls.requiredProperties){
+      const hasProp = person.properties.find(p=>p.id===req);
+      if(!hasProp || hasProp.value === 'PENDING' || hasProp.value === 'IN-PROGRESS') return 'warn';
+    }
+  }
+  return 'ok';
+}
+
+function getDaysUntilExpiry(person){
+  let minDays = Infinity;
+  for(const prop of person.properties){
+    if(prop.subProps && prop.subProps.ExpiryDate && prop.subProps.ExpiryDate !== 'N/A'){
+      const exp = new Date(prop.subProps.ExpiryDate);
+      const diff = Math.round((exp - today) / 86400000);
+      if(diff < minDays) minDays = diff;
+    }
+  }
+  return minDays === Infinity ? null : minDays;
+}
+
+function getPersonClass(person){
+  // Get the most specific class (first one)
+  const c = CLASSES.find(cl=>cl.id===person.personnelClassIds[0]);
+  return c ? c.name : 'Unclassified';
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER: CLASS TREE
+   Shows ISA-95 PersonnelClassBaseID inheritance
+   ═══════════════════════════════════════════════════ */
+
+let selectedClassId = null;
+
+function buildClassTree(){
+  // Roots = classes with no baseId
+  const roots = CLASSES.filter(c=>!c.baseId);
+  const el = document.getElementById('class-tree');
+  el.innerHTML = roots.map(r=>renderClassNode(r)).join('');
+}
+
+function renderClassNode(cls){
+  const children = CLASSES.filter(c=>c.baseId===cls.id);
+  const members = PERSONS.filter(p=>p.personnelClassIds.includes(cls.id));
+  const selected = selectedClassId===cls.id;
+  return `
+    <div class="tree-node">
+      <div class="tree-card${selected?' selected':''}" onclick="selectClass('${cls.id}')">
+        <div class="tree-card-top">
+          <div>
+            <div class="tree-class-id">${cls.id}</div>
+            <div class="tree-class-name">${cls.name}</div>
+          </div>
+          <div class="tree-member-count">${members.length}</div>
+        </div>
+        ${cls.baseId?`<div class="tree-inherits">inherits from ${CLASSES.find(c=>c.id===cls.baseId)?.name||cls.baseId}</div>`:''}
+        <div class="tree-props">${cls.requiredProperties.map(p=>`<span class="tree-prop-tag">${p}</span>`).join('')}</div>
+      </div>
+      ${children.length?`<div class="tree-children">${children.map(ch=>renderClassNode(ch)).join('')}</div>`:''}
+    </div>
+  `;
+}
+
+function selectClass(id){
+  selectedClassId = selectedClassId===id ? null : id;
+  buildClassTree();
+  renderRoster();
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER: PERSON ROSTER
+   ═══════════════════════════════════════════════════ */
+
+let rosterFilter = 'all';
+
+function filterRoster(btn, filter){
+  document.querySelectorAll('.rf-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  rosterFilter = filter;
+  renderRoster();
+}
+
+function renderRoster(){
+  const grid = document.getElementById('person-grid');
+  let persons = PERSONS;
+  if(selectedClassId) persons = persons.filter(p=>p.personnelClassIds.includes(selectedClassId));
+  if(rosterFilter!=='all') persons = persons.filter(p=>getPersonStatus(p)===rosterFilter);
+
+  grid.innerHTML = persons.map(p=>{
+    const status = getPersonStatus(p);
+    const days = getDaysUntilExpiry(p);
+    const cls = getPersonClass(p);
+    const expiryLabel = status==='inactive' ? 'End date' :
+      days===null ? 'No expiry tracked' :
+      days < 0 ? `Expired ${Math.abs(days)}d ago` :
+      `${days}d to next expiry`;
+    const expiryClass = status==='inactive'?'val-muted':days!==null&&days<0?'val-alert':days!==null&&days<14?'val-warn':days!==null&&days<30?'val-warn':'val-ok';
+
+    const badgeMap = { ok:'badge-ok', warn:'badge-warn', alert:'badge-alert', inactive:'badge-inactive' };
+    const badgeLabel = { ok:'Qualified', warn:'Warning', alert:'Action Required', inactive:'Inactive' };
+
+    return `
+      <div class="person-card ${status}" onclick="openDrawer('${p.id}')">
+        <div class="pc-top">
+          <div class="pc-avatar" style="background:${p.avatarBg};color:#9CBFE0">${p.avatar}</div>
+          <span class="pc-status-badge ${badgeMap[status]}">${badgeLabel[status]}</span>
+        </div>
+        <div class="pc-id">${p.id} · PersonType</div>
+        <div class="pc-name">${p.name}</div>
+        <div class="pc-class">${cls}</div>
+        <div class="pc-divider"></div>
+        <div class="pc-field">
+          <div class="pc-field-key">OperationalLocation</div>
+          <div class="pc-field-val val-blue" style="font-size:10px;text-align:right;max-width:120px;line-height:1.3">${p.operationalLocation}</div>
+        </div>
+        <div class="pc-field">
+          <div class="pc-field-key">HierarchyScope</div>
+          <div class="pc-field-val val-muted" style="font-size:9.5px">${p.hierarchyScope}</div>
+        </div>
+        <div class="pc-field">
+          <div class="pc-field-key">Next expiry</div>
+          <div class="pc-field-val ${expiryClass}">${expiryLabel}</div>
+        </div>
+        <div class="pc-field">
+          <div class="pc-field-key">PersonProperty count</div>
+          <div class="pc-field-val val-blue">${p.properties.length} fields</div>
+        </div>
+      </div>
+    `;
+  }).join('') || '<div style="color:var(--ink-m);font-size:12px;padding:12px">No personnel match this filter.</div>';
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER: AI PANEL
+   Reads PersonProperty values to surface interventions
+   Grounded in: BioPlan 3.5-3.8% operator error rate,
+   80% deviations from human error (GMP Pros),
+   21 CFR Part 11 qualification verification requirement
+   ═══════════════════════════════════════════════════ */
+
+function renderAI(){
+  // Summary
+  const alerts = PERSONS.filter(p=>getPersonStatus(p)==='alert');
+  const warns  = PERSONS.filter(p=>getPersonStatus(p)==='warn');
+  const ok     = PERSONS.filter(p=>getPersonStatus(p)==='ok');
+  const inactive = PERSONS.filter(p=>getPersonStatus(p)==='inactive');
+
+  // Header stats
+  document.getElementById('hdr-total').textContent = PERSONS.length;
+  document.getElementById('hdr-qualified').textContent = ok.length;
+  document.getElementById('hdr-flags').textContent = alerts.length + warns.length;
+
+  // AI Summary box
+  let summaryHtml = '';
+  if(alerts.length > 0){
+    summaryHtml = `<b>${alerts.length} operator(s) have expired qualifications</b> and are non-compliant with 21 CFR Part 11 requirements. Immediate action required — these individuals should not execute GMP tasks until resolved. Industry data: operator-related issues cause <b>3.5–3.8% of commercial batch failures</b> (BioPlan 22nd Annual).`;
+  } else if(warns.length > 0){
+    summaryHtml = `<b>${warns.length} operator(s) have qualifications expiring within 30 days.</b> Unaddressed, this risks production gaps on affected stations. Industry data: <b>80% of process deviations</b> are traceable to human error (GMP Pros / Dr. Collazo).`;
+  } else {
+    summaryHtml = `All active personnel records are within compliance bounds. <b>${ok.length} operators fully qualified</b> across ${CLASSES.length} personnel classes. Workforce risk is currently low.`;
+  }
+  document.getElementById('ai-summary-text').innerHTML = summaryHtml;
+
+  // Coverage grid
+  const blendingClass = PERSONS.filter(p=>p.personnelClassIds.includes('BLEND-OPS') && getPersonStatus(p)!=='inactive');
+  const granClass = PERSONS.filter(p=>p.personnelClassIds.includes('GRAN-OPS') && getPersonStatus(p)!=='inactive');
+  const qaClass = PERSONS.filter(p=>p.personnelClassIds.includes('QA-REVIEWER') && getPersonStatus(p)!=='inactive');
+  const blendQual = blendingClass.filter(p=>getPersonStatus(p)==='ok').length;
+  const granQual = granClass.filter(p=>getPersonStatus(p)==='ok').length;
+  const qaQual = qaClass.filter(p=>getPersonStatus(p)==='ok').length;
+
+  document.getElementById('coverage-grid').innerHTML = [
+    { val: blendQual+'/'+blendingClass.length, lbl:'Blending\nQualified', color: blendQual===blendingClass.length?'var(--green)':blendQual===0?'var(--red)':'var(--amber)' },
+    { val: granQual+'/'+granClass.length, lbl:'Granulation\nQualified', color: granQual===granClass.length?'var(--green)':granQual===0?'var(--red)':'var(--amber)' },
+    { val: qaQual+'/'+qaClass.length, lbl:'QA Review\nQualified', color: qaQual===qaClass.length?'var(--green)':qaQual===0?'var(--red)':'var(--amber)' },
+    { val: inactive.length, lbl:'Personnel\nInactive', color:'var(--ink-m)' }
+  ].map(c=>`
+    <div class="cov-cell">
+      <div class="cov-val" style="color:${c.color}">${c.val}</div>
+      <div class="cov-lbl">${c.lbl}</div>
+    </div>`).join('');
+
+  // Risk gauges — derived from the actual PersonProperty data
+  const totalActive = PERSONS.filter(p=>getPersonStatus(p)!=='inactive').length;
+  const flaggedPct = Math.round(((alerts.length+warns.length)/totalActive)*100);
+  const expiredPct = Math.round((alerts.length/totalActive)*100);
+  const coverageRisk = Math.round(((blendingClass.length - blendQual + granClass.length - granQual) / (blendingClass.length + granClass.length)) * 100);
+  document.getElementById('risk-gauge').innerHTML = [
+    { label:'Personnel flagged', pct: flaggedPct, color: flaggedPct>30?'#EF5350':flaggedPct>15?'#FFA726':'#66BB6A' },
+    { label:'Expired certifications', pct: expiredPct, color: expiredPct>0?'#EF5350':'#66BB6A' },
+    { label:'Station coverage gap', pct: coverageRisk, color: coverageRisk>25?'#EF5350':coverageRisk>10?'#FFA726':'#66BB6A' },
+    { label:'Operator error risk', pct: 35 + flaggedPct, color:'#FFA726' },
+  ].map(g=>`
+    <div class="rg-row">
+      <div class="rg-label">${g.label}</div>
+      <div class="rg-bar"><div class="rg-fill" style="width:${Math.min(g.pct,100)}%;background:${g.color}"></div></div>
+      <div class="rg-pct">${Math.min(g.pct,100)}%</div>
+    </div>`).join('');
+
+  // AI Flags — generated per-person from PersonProperty analysis
+  const flags = [];
+  const now = new Date(today);
+  PERSONS.forEach(p=>{
+    const status = getPersonStatus(p);
+    if(status==='inactive') return;
+    p.properties.forEach(prop=>{
+      if(prop.value==='EXPIRED'){
+        flags.push({
+          type:'alert', person:`${p.id} — ${p.name}`,
+          msg:`<b>PersonProperty "${prop.id}"</b> has expired (ExpiryDate: ${prop.subProps?.ExpiryDate||'unknown'}). Per 21 CFR Part 11, this operator cannot execute GMP tasks requiring this qualification.`,
+          action:'Initiate recertification · Update EffectiveEndDate',
+          time: prop.subProps?.ExpiryDate ? `Expired ${Math.abs(Math.round((new Date(prop.subProps.ExpiryDate)-now)/86400000))} days ago` : 'Expiry date not set'
+        });
+      } else if(prop.value==='EXPIRING'){
+        const exp = new Date(prop.subProps?.ExpiryDate||now);
+        const d = Math.round((exp-now)/86400000);
+        flags.push({
+          type:'warn', person:`${p.id} — ${p.name}`,
+          msg:`<b>PersonProperty "${prop.id}"</b> expires in <b>${d} day${d!==1?'s':''}</b>. Schedule recertification now to prevent station coverage gap.`,
+          action:'Schedule recertification · Assign backup operator',
+          time:`Expires ${prop.subProps?.ExpiryDate}`
+        });
+      } else if(prop.value==='IN-PROGRESS'){
+        flags.push({
+          type:'info', person:`${p.id} — ${p.name}`,
+          msg:`<b>PersonProperty "${prop.id}"</b> is in progress (${prop.subProps?.Completion||'?'} complete). Target date: ${prop.subProps?.TargetDate||'unknown'}. Operator is restricted to supervised tasks.`,
+          action:'Track certification progress · Assign qualified supervisor',
+          time:`Target: ${prop.subProps?.TargetDate||'TBD'}`
+        });
+      }
+    });
+    // Check class requirements
+    const primaryClass = CLASSES.find(c=>c.id===p.personnelClassIds[0]);
+    if(primaryClass){
+      primaryClass.requiredProperties.forEach(req=>{
+        if(!p.properties.find(pp=>pp.id===req)){
+          flags.push({
+            type:'warn', person:`${p.id} — ${p.name}`,
+            msg:`<b>PersonnelClass "${primaryClass.name}"</b> requires property <b>"${req}"</b> but this is not present in the person's PersonProperty records. May indicate a data gap.`,
+            action:'Verify training record · Update PersonProperty',
+            time:'Detected in current scan'
+          });
+        }
+      });
+    }
+  });
+
+  if(flags.length===0){
+    document.getElementById('ai-flags-list').innerHTML = `<div class="ai-flag resolved"><div class="ai-flag-top"><span class="ai-flag-tag tag-resolved">ALL CLEAR</span></div><div class="ai-flag-msg">No qualification issues detected. All PersonProperty records current.</div></div>`;
+  } else {
+    document.getElementById('ai-flags-list').innerHTML = flags.map(f=>`
+      <div class="ai-flag ${f.type}">
+        <div class="ai-flag-top">
+          <span class="ai-flag-tag tag-${f.type}">${f.type.toUpperCase()}</span>
+          <span class="ai-flag-person">${f.person}</span>
+        </div>
+        <div class="ai-flag-msg">${f.msg}</div>
+        <div class="ai-flag-action" onclick="showToast('◆','Action logged',\`${f.action}\`)">→ ${f.action}</div>
+        <div class="ai-flag-time">${f.time}</div>
+      </div>`).join('');
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   PERSON DETAIL DRAWER
+   Shows all ISA-95 PersonType fields by label
+   ═══════════════════════════════════════════════════ */
+
+function openDrawer(personId){
+  const p = PERSONS.find(x=>x.id===personId);
+  if(!p) return;
+  const status = getPersonStatus(p);
+  const days = getDaysUntilExpiry(p);
+
+  document.getElementById('d-eyebrow').textContent = `${p.id} · ISA-95 PersonType`;
+  document.getElementById('d-name').textContent = p.name;
+  document.getElementById('d-class').textContent = p.personnelClassIds.map(id=>CLASSES.find(c=>c.id===id)?.name||id).join(' · ');
+
+  const statusLabel = { ok:'Fully Qualified', warn:'Warning — Action Needed', alert:'Non-Compliant — Immediate Action', inactive:'Inactive' };
+  const statusColor = { ok:'var(--green)', warn:'var(--amber)', alert:'var(--red)', inactive:'var(--ink-m)' };
+
+  let html = '';
+
+  // ISA-95 core fields
+  html += `<div class="d-sec">
+    <div class="d-sec-title">ISA-95 PersonType Fields</div>
+    <div class="d-field-row"><div class="d-field-key">ID (PersonID)</div><div class="d-field-val val-blue">${p.id}</div></div>
+    <div class="d-field-row"><div class="d-field-key">PersonName</div><div class="d-field-val">${p.name}</div></div>
+    <div class="d-field-row"><div class="d-field-key">PersonnelClassID(s)</div><div class="d-field-val" style="color:var(--purple);text-align:right;max-width:200px;line-height:1.4">${p.personnelClassIds.join(', ')}</div></div>
+    <div class="d-field-row"><div class="d-field-key">EffectiveStartDate</div><div class="d-field-val">${p.effectiveStartDate}</div></div>
+    <div class="d-field-row"><div class="d-field-key">EffectiveEndDate</div><div class="d-field-val ${p.effectiveEndDate?'val-amber':'val-muted'}">${p.effectiveEndDate||'Not set (active)'}</div></div>
+    <div class="d-field-row"><div class="d-field-key">OperationalLocation</div><div class="d-field-val val-blue">${p.operationalLocation}</div></div>
+    <div class="d-field-row"><div class="d-field-key">HierarchyScope</div><div class="d-field-val val-muted">${p.hierarchyScope}</div></div>
+    <div class="d-field-row"><div class="d-field-key">Overall Status</div><div class="d-field-val" style="color:${statusColor[status]}">${statusLabel[status]}</div></div>
+  </div>`;
+
+  // PersonProperty fields
+  html += `<div class="d-sec">
+    <div class="d-sec-title">PersonProperty Records (${p.properties.length})</div>
+    ${p.properties.map(prop=>{
+      const valColor = prop.value==='CERTIFIED'||prop.value==='CURRENT'||prop.value==='COMPLETE'||prop.value==='ACTIVE'?'var(--green)':
+        prop.value==='EXPIRING'||prop.value==='IN-PROGRESS'||prop.value==='PENDING'?'var(--amber)':
+        prop.value==='EXPIRED'||prop.value==='SUSPENDED'?'var(--red)':'var(--ink-s)';
+      return `
+        <div class="prop-block">
+          <div class="prop-block-name">${prop.id}</div>
+          <div class="prop-block-row">
+            <div class="prop-block-key">Value</div>
+            <div class="prop-block-val" style="color:${valColor}">${prop.value}</div>
+          </div>
+          ${Object.entries(prop.subProps||{}).map(([k,v])=>`
+            <div class="prop-block-row">
+              <div class="prop-block-key">${k}</div>
+              <div class="prop-block-val">${v}</div>
+            </div>`).join('')}
+        </div>`;
+    }).join('')}
+  </div>`;
+
+  // AI recommendation
+  const rec = status==='alert'
+    ? `This operator has <b>expired qualifications</b>. Under 21 CFR Part 11 and GMP requirements, they must not execute tasks requiring these qualifications until recertified. Initiate the recertification workflow immediately and reassign their current tasks to a qualified colleague. Industry data: operator-related failures cost <b>$25,000–$55,000 per OOS investigation</b>.`
+    : status==='warn'
+    ? `Qualifications are expiring soon. Schedule recertification to avoid a compliance gap. Check station coverage — if this operator is the only qualified person for their station, identify a backup. BioPlan data: <b>3.5% of batch failures</b> are directly attributed to operator error at commercial scale.`
+    : status==='inactive'
+    ? `This person's EffectiveEndDate indicates they are currently inactive. Their CleanroomAccess and task assignments should be reviewed and suspended if not already done.`
+    : `All PersonProperty records are current and within validity. This operator is fully qualified for their assigned PersonnelClass(es). No action required.`;
+
+  html += `<div class="d-sec">
+    <div class="d-sec-title">AI Recommendation</div>
+    <div class="ai-rec-box">
+      <span class="label">◆ AI · Personnel Intelligence</span>
+      ${rec}
+    </div>
+  </div>`;
+
+  html += `<div class="d-actions">
+    <button class="d-btn d-btn-primary" onclick="showToast('✓','Action initiated','Recertification workflow triggered for ${p.name}.');closeDrawer()">Initiate Action</button>
+    <button class="d-btn d-btn-secondary" onclick="closeDrawer()">Close</button>
+  </div>`;
+
+  document.getElementById('d-body').innerHTML = html;
+  document.getElementById('drawer-scrim').classList.add('open');
+}
+
+function closeDrawer(e){
+  if(!e || e.target.id==='drawer-scrim')
+    document.getElementById('drawer-scrim').classList.remove('open');
+}
+
+/* ═══════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════ */
+
+let toastTimer;
+function showToast(icon, title, msg){
+  document.getElementById('toast-icon').textContent = icon;
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-msg').textContent = msg;
+  const el = document.getElementById('toast');
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 4000);
+}
+
+/* ═══════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════ */
+
+buildClassTree();
+renderRoster();
+renderAI();
+</script>
+</body>
+</html>

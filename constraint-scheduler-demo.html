@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Constraint Scheduler — ISA-95</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0C1219;--bg2:#0A0F16;--card:#111D2E;--card2:#162030;
+  --line:#1E3A5F;--line2:#243850;
+  --blue:#4FC3F7;--blue-dim:rgba(79,195,247,.10);
+  --amber:#FFA726;--amber-dim:rgba(255,167,38,.10);
+  --red:#EF5350;--red-dim:rgba(239,83,80,.10);
+  --green:#66BB6A;--green-dim:rgba(102,187,106,.10);
+  --purple:#B39DDB;--purple-dim:rgba(179,157,219,.12);
+  --teal:#4DD0E1;--teal-dim:rgba(77,208,225,.10);
+  --ink:#E8F0FE;--ink-s:#90A4C0;--ink-m:#4A6280;
+  --mono:'JetBrains Mono',monospace;--disp:'DM Serif Display',serif;--sans:'DM Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh;font-size:13px}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+/* HEADER */
+header{background:var(--bg2);border-bottom:1px solid var(--line);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.hdr-l{display:flex;align-items:center;gap:12px}
+.hdr-title{font-family:var(--disp);font-size:21px}.hdr-title span{color:var(--blue)}
+.hdr-schema{font-family:var(--mono);font-size:9.5px;color:var(--ink-m)}.hdr-schema b{color:var(--blue)}
+.hdr-r{display:flex;align-items:center;gap:16px}
+.hstat{text-align:center}.hstat-v{font-family:var(--mono);font-size:16px;font-weight:600}.hstat-l{font-size:9px;color:var(--ink-m);text-transform:uppercase;letter-spacing:.8px;margin-top:1px}
+.live{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--blue);border:1px solid rgba(79,195,247,.3);padding:4px 10px;border-radius:12px}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--blue);animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+/* ARCH BANNER */
+.arch{background:var(--bg2);border-bottom:1px solid var(--line);padding:6px 20px;display:flex;align-items:center;gap:0;flex-wrap:wrap}
+.as{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:8.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-m)}
+.as.on{color:var(--blue)}.as .d{width:6px;height:6px;border-radius:50%;background:var(--line2);flex-shrink:0}.as.on .d{background:var(--blue);animation:blink 1.8s infinite}
+.arr{font-size:10px;color:var(--line2);margin:0 8px}
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--line);background:var(--bg2);padding:0 20px}
+.tb{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.7px;padding:8px 16px;border:none;background:transparent;color:var(--ink-m);cursor:pointer;border-bottom:2px solid transparent;transition:all .18s}
+.tb:hover{color:var(--ink-s)}.tb.on{color:var(--blue);border-bottom-color:var(--blue)}
+/* LAYOUT */
+.lay{display:grid;grid-template-columns:290px 1fr 320px;height:calc(100vh - 108px);overflow:hidden}
+.col{overflow-y:auto;border-right:1px solid var(--line);padding:14px}
+.col:last-child{border-right:none}
+.ctitle{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-m);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ctitle::after{content:'';flex:1;height:1px;background:var(--line)}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:11px 12px;margin-bottom:8px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.card.ok::before{background:var(--green)}.card.warn::before{background:var(--amber)}.card.alert::before{background:var(--red)}
+.card:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(0,0,0,.3)}
+.card.alert{border-color:rgba(239,83,80,.3);animation:pr 2.2s infinite}.card.warn{border-color:rgba(255,167,38,.25)}
+@keyframes pr{0%,100%{box-shadow:none}50%{box-shadow:0 0 10px rgba(239,83,80,.2)}}
+.ctop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.cicon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;background:var(--card2);border:1px solid var(--line)}
+.bdg{font-family:var(--mono);font-size:8px;font-weight:600;padding:2px 6px;border-radius:9px;text-transform:uppercase;letter-spacing:.5px}
+.ok-b{background:var(--green-dim);color:var(--green);border:1px solid rgba(102,187,106,.3)}
+.warn-b{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,167,38,.3)}
+.alert-b{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,83,80,.3)}
+.cid{font-family:var(--mono);font-size:8.5px;color:var(--ink-m);margin-bottom:2px}
+.cname{font-size:12.5px;font-weight:600;margin-bottom:2px}.csub{font-size:9.5px;color:var(--ink-m)}
+.cdiv{height:1px;background:var(--line);margin:7px 0}
+.crow{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.ck{font-size:9px;color:var(--ink-m)}.cv{font-family:var(--mono);font-size:9.5px;font-weight:500}
+.ok-v{color:var(--green)}.warn-v{color:var(--amber)}.alert-v{color:var(--red)}.blue-v{color:var(--blue)}.muted-v{color:var(--ink-m)}.purple-v{color:var(--purple)}.teal-v{color:var(--teal)}
+/* FILTERS */
+.filters{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.fb{font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--ink-s);cursor:pointer;transition:all .15s}
+.fb:hover{border-color:var(--blue);color:var(--blue)}.fb.on{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
+/* SCORE PILL */
+.sp{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8.5px;padding:2px 7px;border-radius:9px}
+.s0{background:var(--green-dim);color:var(--green);border:1px solid rgba(102,187,106,.3)}
+.s1{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,167,38,.3)}
+.s2{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,83,80,.3)}
+/* GANTT */
+.ghdr{display:flex;margin-bottom:4px}
+.glc{width:160px;flex-shrink:0}.gtr{flex:1;display:flex}
+.gslot{flex:1;text-align:center;font-family:var(--mono);font-size:8.5px;color:var(--ink-m);padding-bottom:3px;border-left:1px solid var(--line)}
+.grow{display:flex;align-items:center;margin-bottom:3px;min-height:32px}
+.grlbl{width:160px;flex-shrink:0;padding-right:6px}.grlbl-n{font-size:10.5px;font-weight:500}.grlbl-s{font-size:9px;color:var(--ink-m);margin-top:1px}
+.gtrack{flex:1;height:28px;background:var(--card2);border-radius:4px;position:relative;overflow:visible;border:1px solid var(--line)}
+.gblk{position:absolute;top:2px;height:24px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:7.5px;font-weight:600;cursor:pointer;overflow:hidden;white-space:nowrap;padding:0 4px;transition:opacity .15s}
+.gblk:hover{opacity:.8}
+.gprod{background:rgba(79,195,247,.22);color:var(--blue);border:1px solid rgba(79,195,247,.45)}
+.gmaint{background:rgba(255,167,38,.18);color:var(--amber);border:1px solid rgba(255,167,38,.4)}
+.gblock{background:rgba(239,83,80,.18);color:var(--red);border:1px solid rgba(239,83,80,.4)}
+.gidle{background:rgba(74,98,128,.10);color:var(--ink-m);border:1px solid var(--line)}
+.gleave{background:rgba(179,157,219,.18);color:var(--purple);border:1px solid rgba(179,157,219,.4)}
+.gai{background:rgba(77,208,225,.12);color:var(--teal);border:1px dashed rgba(77,208,225,.5)}
+.gpartial{background:rgba(255,167,38,.12);color:var(--amber);border:1px solid rgba(255,167,38,.4)}
+.gnow{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:var(--red);z-index:5;pointer-events:none}
+.gnow::before{content:'NOW';position:absolute;top:-13px;left:-9px;font-family:var(--mono);font-size:7px;color:var(--red)}
+.gsec{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-m);padding:6px 0 5px;padding-left:160px}
+.leg{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+.li{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8.5px;color:var(--ink-m)}
+.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+/* AI PANEL */
+.aisum{background:var(--blue-dim);border:1px solid rgba(79,195,247,.25);border-radius:8px;padding:11px;margin-bottom:11px}
+.aish{font-family:var(--mono);font-size:8.5px;color:var(--blue);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;display:flex;align-items:center;gap:7px}
+.aist{font-size:11px;color:var(--ink-s);line-height:1.6}.aist b{color:var(--ink)}
+.aif{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 11px;margin-bottom:6px;border-left:3px solid;transition:all .2s}
+.aif:hover{transform:translateX(2px)}
+.aif.alert{border-left-color:var(--red)}.aif.warn{border-left-color:var(--amber)}
+.aif.info{border-left-color:var(--blue)}.aif.sug{border-left-color:var(--teal)}.aif.ok{border-left-color:var(--green);opacity:.75}
+.aift{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.aifta{font-family:var(--mono);font-size:8px;font-weight:600;padding:1px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.5px}
+.ta-alert{background:var(--red-dim);color:var(--red)}.ta-warn{background:var(--amber-dim);color:var(--amber)}
+.ta-info{background:var(--blue-dim);color:var(--blue)}.ta-sug{background:var(--teal-dim);color:var(--teal)}.ta-ok{background:var(--green-dim);color:var(--green)}
+.aifsrc{font-family:var(--mono);font-size:9px;color:var(--ink-s)}
+.aifm{font-size:10.5px;color:var(--ink-s);line-height:1.5}.aifm b{color:var(--ink)}
+.aitrace{background:var(--card2);border:1px solid var(--line);border-radius:4px;padding:6px 8px;margin-top:5px;font-family:var(--mono);font-size:8.5px;color:var(--ink-m);line-height:1.7}
+.aitrace b{color:var(--ink-s)}
+.aifacts{margin-top:6px;display:flex;flex-direction:column;gap:3px}
+.aab{font-family:var(--mono);font-size:9px;color:var(--blue);background:var(--blue-dim);border:1px solid rgba(79,195,247,.25);padding:4px 9px;border-radius:4px;cursor:pointer;text-align:left;transition:all .15s}
+.aab:hover{background:rgba(79,195,247,.18);border-color:var(--blue)}
+.aab.teal{color:var(--teal);background:var(--teal-dim);border-color:rgba(77,208,225,.3)}
+.aab.teal:hover{background:rgba(77,208,225,.2)}
+/* COVERAGE */
+.covg{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:11px}
+.cc{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:7px 9px;text-align:center}
+.ccv{font-family:var(--mono);font-size:14px;font-weight:600;margin-bottom:2px}.ccl{font-size:9px;color:var(--ink-m);line-height:1.3}
+/* RISK */
+.rr{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.rl{font-size:10px;color:var(--ink-s);min-width:105px}
+.rb{flex:1;height:4px;background:var(--card2);border-radius:2px;overflow:hidden}
+.rf{height:100%;border-radius:2px;transition:width .6s}
+.rp{font-family:var(--mono);font-size:9.5px;color:var(--ink-m);min-width:26px;text-align:right}
+/* SECTION LBL */
+.slbl{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-m);padding:5px 0 7px;display:flex;align-items:center;gap:6px}
+.slbl::after{content:'';flex:1;height:1px;background:var(--line)}
+/* ISA NOTE */
+.isanote{background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:10px;color:var(--ink-m);line-height:1.6;margin-top:8px}
+.isanote b{color:var(--ink-s)}
+/* DRAWER */
+.dscrim{position:fixed;inset:0;background:rgba(6,10,18,.75);backdrop-filter:blur(4px);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
+.dscrim.on{opacity:1;pointer-events:all}
+.drw{position:fixed;top:0;right:0;bottom:0;width:450px;background:var(--card);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);z-index:101;overflow-y:auto}
+.dscrim.on .drw{transform:translateX(0)}
+.dhead{padding:16px 18px 11px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);z-index:2;display:flex;justify-content:space-between;align-items:flex-start}
+.dclose{width:26px;height:26px;border-radius:5px;background:var(--card2);border:1px solid var(--line);color:var(--ink-s);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.dclose:hover{border-color:var(--blue);color:var(--ink)}
+.dbody{padding:14px 18px 28px}
+.dey{font-family:var(--mono);font-size:9px;color:var(--ink-m);letter-spacing:1.1px;text-transform:uppercase;margin-bottom:3px}
+.dname{font-size:18px;font-weight:700;margin-bottom:2px}.dcls{font-size:11.5px;color:var(--purple)}
+.dsec{margin-bottom:14px}
+.dstitle{font-family:var(--mono);font-size:8.5px;text-transform:uppercase;letter-spacing:1.1px;color:var(--ink-m);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.dstitle::after{content:'';flex:1;height:1px;background:var(--line)}
+.dfr{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid rgba(30,58,95,.4);font-size:11.5px}
+.dfr:last-child{border-bottom:none}
+.dfk{color:var(--ink-m);font-size:10.5px;padding-top:1px}.dfv{font-family:var(--mono);font-size:10px;font-weight:500;text-align:right;max-width:230px;line-height:1.4}
+/* CONSTRAINT TABLE */
+.ctbl{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:3px}
+.ctbl th{font-family:var(--mono);font-size:8px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-m);padding:4px 7px;border-bottom:1px solid var(--line);text-align:left}
+.ctbl td{padding:5px 7px;border-bottom:1px solid rgba(30,58,95,.3);vertical-align:middle}
+.ctbl tr:last-child td{border-bottom:none}
+.fid{font-family:var(--mono);font-size:9px;color:var(--ink-s)}
+.vd{font-family:var(--mono);font-size:8.5px;padding:1px 5px;border-radius:3px}
+.vok{background:var(--green-dim);color:var(--green)}.vfail{background:var(--red-dim);color:var(--red)}.vwarn{background:var(--amber-dim);color:var(--amber)}
+/* REC BOXES */
+.aibox{background:var(--blue-dim);border:1px solid rgba(79,195,247,.25);border-radius:7px;padding:10px 12px;font-size:11px;color:var(--ink-s);line-height:1.6}
+.aibox .lbl{font-family:var(--mono);font-size:8.5px;color:var(--blue);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px}
+.aibox b{color:var(--ink)}
+.sugbox{background:var(--teal-dim);border:1px solid rgba(77,208,225,.25);border-radius:7px;padding:10px 12px;margin-top:7px;font-size:11px;color:var(--ink-s);line-height:1.6}
+.sugbox .lbl{font-family:var(--mono);font-size:8.5px;color:var(--teal);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px}
+.sugbox b{color:var(--ink)}
+/* ACTIONS */
+.dacts{display:flex;gap:7px;margin-top:12px}
+.dbtn{padding:7px 14px;border-radius:6px;font-size:11.5px;font-weight:500;border:none;cursor:pointer;transition:all .15s;font-family:var(--sans)}
+.dbtn-p{background:var(--blue);color:#051824;font-weight:600}.dbtn-p:hover{background:#81D4FA}
+.dbtn-s{background:var(--card2);color:var(--ink-s);border:1px solid var(--line)}.dbtn-s:hover{border-color:var(--blue);color:var(--ink)}
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;max-width:320px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:11px 14px;display:flex;gap:9px;transform:translateY(12px);opacity:0;transition:all .3s;z-index:200;pointer-events:none;font-size:11px}
+.toast.on{transform:translateY(0);opacity:1}
+.toast b{display:block;font-size:12px;margin-bottom:2px;color:var(--ink)}
+.toast span{color:var(--ink-s);line-height:1.5}
+.ticon{font-size:17px;flex-shrink:0;padding-top:1px}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-l">
+    <div class="hdr-title">Constraint <span>Scheduler</span></div>
+    <div class="hdr-schema">ISA-95 · B2MML · Equipment + Personnel + Material · <b>OperationsSchedule.xsd</b></div>
+  </div>
+  <div class="hdr-r">
+    <div class="hstat"><div class="hstat-v" id="hd-j" style="color:var(--blue)">6</div><div class="hstat-l">Active Jobs</div></div>
+    <div class="hstat"><div class="hstat-v" id="hd-b" style="color:var(--red)">0</div><div class="hstat-l">Blocked</div></div>
+    <div class="hstat"><div class="hstat-v" id="hd-w" style="color:var(--amber)">0</div><div class="hstat-l">Warnings</div></div>
+    <div class="hstat"><div class="hstat-v" id="hd-s" style="color:var(--teal)">0</div><div class="hstat-l">AI Suggestions</div></div>
+    <div class="live"><div class="ldot"></div>Rule Engine Active</div>
+  </div>
+</header>
+<div class="arch">
+  <div class="as"><div class="d"></div>Personnel.xsd</div><div class="arr">+</div>
+  <div class="as"><div class="d"></div>Equipment.xsd</div><div class="arr">+</div>
+  <div class="as"><div class="d"></div>MaterialLot.xsd</div><div class="arr">+</div>
+  <div class="as"><div class="d"></div>OperationsSchedule.xsd</div><div class="arr">&#8594;</div>
+  <div class="as on"><div class="d"></div>Constraint Engine</div><div class="arr">&#8594;</div>
+  <div class="as on"><div class="d"></div>AI Recommendation Engine</div><div class="arr">&#8594;</div>
+  <div class="as on"><div class="d"></div>Scheduler Dashboard</div>
+</div>
+<div class="tabs">
+  <button class="tb on" onclick="switchTab('sched',this)">Schedule &amp; Jobs</button>
+  <button class="tb" onclick="switchTab('res',this)">Equipment &amp; Personnel</button>
+  <button class="tb" onclick="switchTab('mat',this)">Materials</button>
+</div>
+
+<!-- SCHEDULE TAB -->
+<div id="t-sched" class="lay">
+  <div class="col">
+    <div class="ctitle">Operations Requests</div>
+    <div class="filters">
+      <button class="fb on" onclick="fj(this,'all')">All</button>
+      <button class="fb" onclick="fj(this,'alert')">Blocked</button>
+      <button class="fb" onclick="fj(this,'warn')">Warning</button>
+      <button class="fb" onclick="fj(this,'ok')">Ready</button>
+    </div>
+    <div id="jlist"></div>
+  </div>
+  <div class="col">
+    <div class="ctitle">Gantt — Shift A Timeline (06:00&#8211;22:00)</div>
+    <div class="leg">
+      <div class="li"><div class="ld" style="background:rgba(79,195,247,.5)"></div>Production</div>
+      <div class="li"><div class="ld" style="background:rgba(255,167,38,.45)"></div>Maintenance</div>
+      <div class="li"><div class="ld" style="background:rgba(239,83,80,.45)"></div>Blocked</div>
+      <div class="li"><div class="ld" style="background:rgba(179,157,219,.45)"></div>Leave</div>
+      <div class="li"><div class="ld" style="background:rgba(77,208,225,.3);border:1px dashed rgba(77,208,225,.6)"></div>AI Suggestion</div>
+      <div class="li"><div class="ld" style="background:rgba(74,98,128,.3)"></div>Idle</div>
+    </div>
+    <div id="gantt"></div>
+    <div class="isanote"><b>ISA-95:</b> Each row maps to an <b>EquipmentCapability</b> or <b>PersonnelCapability</b> record. Blocks = <b>OperationsSchedule</b> entries (StartTime, EndTime, EntryType). Dashed teal = AI-proposed changes pending approval. NOW line = 09:30.</div>
+  </div>
+  <div class="col">
+    <div class="ctitle">AI Intervention Panel</div>
+    <div class="aisum"><div class="aish"><div class="ldot"></div>Constraint Engine &#8594; AI Recommendations</div><div class="aist" id="sai-sum"></div></div>
+    <div class="slbl">Rule-Based Flags</div>
+    <div id="sai-flags"></div>
+  </div>
+</div>
+
+<!-- RESOURCES TAB -->
+<div id="t-res" class="lay" style="display:none">
+  <div class="col">
+    <div class="ctitle">Equipment &#183; EquipmentCapability.xsd</div>
+    <div id="elist"></div>
+    <div class="isanote"><b>ISA-95:</b> <b>CapabilityType</b> and <b>EffectiveEndTime</b> determine availability. A maintenance window sets EffectiveEndTime = maintenance start, removing the unit from the pool. <b>CapacityQuantity</b> is checked against job requirements before assignment.</div>
+  </div>
+  <div class="col">
+    <div class="ctitle">Personnel &#183; PersonnelCapability.xsd</div>
+    <div id="plist"></div>
+    <div class="isanote"><b>ISA-95:</b> <b>Qualification.ExpiryDate</b> and <b>EffectiveEndDate</b> are checked per assignment. If expired or on leave, the engine flags the job and generates a specific backup from the same PersonnelClass.</div>
+  </div>
+  <div class="col">
+    <div class="ctitle">AI &#183; Resource Interventions</div>
+    <div class="aisum"><div class="aish"><div class="ldot"></div>Resource Constraint Engine</div><div class="aist" id="rai-sum"></div></div>
+    <div class="slbl">Coverage</div><div class="covg" id="rcovg"></div>
+    <div class="slbl">Risk</div><div id="rrisk"></div>
+    <div class="slbl">Flags</div><div id="rflags"></div>
+  </div>
+</div>
+
+<!-- MATERIALS TAB -->
+<div id="t-mat" class="lay" style="display:none">
+  <div class="col">
+    <div class="ctitle">Material Lots &#183; MaterialLot.xsd</div>
+    <div id="mlist"></div>
+    <div class="isanote"><b>ISA-95:</b> <b>LotStatus</b> (Released/Quarantine/Hold) gates dispensing. <b>AvailableQty = TotalStock &#8722; AllocatedElsewhere</b>. Scheduler checks AvailableQty against job requirement &#8212; not total stock.</div>
+  </div>
+  <div class="col">
+    <div class="ctitle">Demand vs Supply &#183; MaterialActual.xsd</div>
+    <div id="mdlist"></div>
+  </div>
+  <div class="col">
+    <div class="ctitle">AI &#183; Material Interventions</div>
+    <div class="aisum"><div class="aish"><div class="ldot"></div>Material Constraint Engine</div><div class="aist" id="mai-sum"></div></div>
+    <div class="slbl">Flags</div><div id="mflags"></div>
+  </div>
+</div>
+
+<!-- DRAWER -->
+<div class="dscrim" id="dscrim" onclick="closeDrw(event)">
+  <div class="drw" id="drw">
+    <div class="dhead">
+      <div><div class="dey" id="dey"></div><div class="dname" id="dname"></div><div class="dcls" id="dcls"></div></div>
+      <button class="dclose" onclick="closeDrw()">&#10005;</button>
+    </div>
+    <div class="dbody" id="dbody"></div>
+  </div>
+</div>
+<div class="toast" id="toast">
+  <div class="ticon" id="ticon">&#9670;</div>
+  <div><b id="ttitle"></b><span id="tmsg"></span></div>
+</div>
+
+<script>
+/* ================================================================
+   SINGLE SOURCE OF TRUTH — all data here, nothing duplicated
+   Constraint engine derives all statuses, scores, recommendations
+   ================================================================ */
+
+const SHIFT = { start:6, end:22, hours:16, line:'Line-2' };
+const NOW_H = 9.5;
+
+/* ---- EQUIPMENT ---- */
+const EQ = {
+  'EQ-101':{ id:'EQ-101', name:'Granulator A', model:'GEA WSG 120', cls:'GranulatorClass',
+    scope:'Line-2', cap:120, capU:'kg/h', status:'ok', maint:null, calDue:null, oee:82,
+    sched:[{s:6,e:9,t:'prod',lbl:'B-0041 Granulation',job:'JOB-001'},{s:9,e:10.5,t:'idle',lbl:'Idle'},
+           {s:10.5,e:14.5,t:'prod',lbl:'B-0042 Granulation',job:'JOB-002'},{s:14.5,e:22,t:'idle',lbl:'Available'}]},
+  'EQ-102':{ id:'EQ-102', name:'Granulator B', model:'GEA WSG 120', cls:'GranulatorClass',
+    scope:'Line-2', cap:120, capU:'kg/h', status:'warn', maint:{s:13,e:17,lbl:'Scheduled PM'}, calDue:null, oee:74,
+    sched:[{s:6,e:9.5,t:'prod',lbl:'B-0043 Granulation',job:'JOB-003'},{s:9.5,e:13,t:'partial',lbl:'B-0044 Granulation',job:'JOB-004'},
+           {s:13,e:17,t:'maint',lbl:'Scheduled PM'},{s:17,e:22,t:'idle',lbl:'Post-maint idle'}]},
+  'EQ-201':{ id:'EQ-201', name:'Blender A', model:'IBC 800L', cls:'BlenderClass',
+    scope:'Line-2', cap:800, capU:'L', status:'alert', maint:null, calDue:'Overdue - expired 06:00', oee:0,
+    sched:[{s:6,e:22,t:'block',lbl:'BLOCKED - Calibration Overdue'}]},
+  'EQ-202':{ id:'EQ-202', name:'Blender B', model:'IBC 800L', cls:'BlenderClass',
+    scope:'Line-2', cap:800, capU:'L', status:'ok', maint:null, calDue:null, oee:89,
+    sched:[{s:6,e:8,t:'idle',lbl:'Setup / CIP'},{s:8,e:14,t:'prod',lbl:'B-0041 Blending',job:'JOB-001'},
+           {s:14,e:22,t:'prod',lbl:'B-0045 Blending',job:'JOB-005'}]},
+  'EQ-301':{ id:'EQ-301', name:'Tablet Press 1', model:'Korsch XL400', cls:'TabletPressClass',
+    scope:'Line-2', cap:400000, capU:'tabs/h', status:'ok', maint:null, calDue:null, oee:91,
+    sched:[{s:6,e:8,t:'idle',lbl:'Idle'},{s:8,e:16,t:'prod',lbl:'B-0041 Compression',job:'JOB-001'},{s:16,e:22,t:'idle',lbl:'Available'}]},
+  'EQ-302':{ id:'EQ-302', name:'Tablet Press 2', model:'Korsch XL400', cls:'TabletPressClass',
+    scope:'Line-2', cap:400000, capU:'tabs/h', status:'warn', maint:{s:15,e:17,lbl:'Punch Set Change'}, calDue:null, oee:68,
+    sched:[{s:6,e:15,t:'prod',lbl:'B-0046 Compression',job:'JOB-006'},{s:15,e:17,t:'maint',lbl:'Punch Set Change'},{s:17,e:22,t:'idle',lbl:'Available'}]}
+};
+
+/* ---- PERSONNEL ---- */
+const PE = {
+  'OP-101':{ id:'OP-101', name:'Ananya Sharma',  cls:'Granulation Operator',  scope:'Line-2', qual:'GranulationCertification', certSt:'ok',   certEx:'+180d', availSt:'ok',    unavail:null,           supervised:false, shift:'A',
+    sched:[{s:6,e:14,t:'prod',lbl:'Shift A - Gran A'},{s:14,e:22,t:'idle',lbl:'Off shift'}]},
+  'OP-114':{ id:'OP-114', name:'Rajan Mehta',    cls:'Blending Operator',     scope:'Line-2', qual:'BlendingCertification',    certSt:'warn',  certEx:'6 days',availSt:'ok',    unavail:null,           supervised:false, shift:'A',
+    sched:[{s:6,e:14,t:'prod',lbl:'Shift A - Blend B'},{s:14,e:22,t:'idle',lbl:'Off shift'}]},
+  'OP-203':{ id:'OP-203', name:'Priya Krishnan', cls:'Sr. Blending Operator', scope:'Line-2', qual:'BlendingCertification',    certSt:'ok',   certEx:'+320d', availSt:'ok',    unavail:null,           supervised:false, shift:'A',
+    sched:[{s:6,e:14,t:'prod',lbl:'Shift A - Blend A'},{s:14,e:22,t:'idle',lbl:'Off shift'}]},
+  'OP-318':{ id:'OP-318', name:'Vikram Tiwari',  cls:'QA Reviewer',           scope:'Line-2', qual:'QA-Certification',          certSt:'alert', certEx:'EXPIRED (12d ago)', availSt:'alert', unavail:'Expired QA-Certification', supervised:false, shift:'A',
+    sched:[{s:6,e:22,t:'block',lbl:'NON-COMPLIANT - Cert Expired'}]},
+  'OP-422':{ id:'OP-422', name:'Arjun Patel',    cls:'Granulation Operator',  scope:'Line-2', qual:'GranulationCertification', certSt:'warn',  certEx:'In progress (72%)', availSt:'ok', unavail:null,  supervised:true,  shift:'A',
+    sched:[{s:6,e:14,t:'prod',lbl:'Shift A - supervised'},{s:14,e:22,t:'idle',lbl:'Off shift'}]},
+  'OP-507':{ id:'OP-507', name:'Kavitha Reddy',  cls:'Blending Operator',     scope:'Line-2', qual:'BlendingCertification',    certSt:'ok',   certEx:'+260d', availSt:'alert', unavail:'Annual leave - returns 31 Mar', supervised:false, shift:'A',
+    sched:[{s:6,e:22,t:'leave',lbl:'Annual Leave - returns 31 Mar'}]},
+  'SL-002':{ id:'SL-002', name:'Deepa Nair',     cls:'Shift Leader',          scope:'Line-2', qual:'LeadershipCertification',  certSt:'ok',   certEx:'+402d', availSt:'ok',    unavail:null,           supervised:false, shift:'B',
+    sched:[{s:6,e:14,t:'idle',lbl:'Off shift'},{s:14,e:22,t:'prod',lbl:'Shift B Lead'}]},
+  'QA-071':{ id:'QA-071', name:'Suresh Bhat',    cls:'QA Reviewer',           scope:'Line-2', qual:'QA-Certification',          certSt:'ok',   certEx:'+145d', availSt:'ok',    unavail:null,           supervised:false, shift:'A',
+    sched:[{s:6,e:14,t:'prod',lbl:'Shift A - QA Review'},{s:14,e:22,t:'idle',lbl:'Off shift'}]}
+};
+
+/* ---- MATERIALS ---- */
+const MA = {
+  'LOT-MCC-01': { id:'LOT-MCC-01', defId:'MAT-MCC', name:'Microcrystalline Cellulose', cls:'Excipient', lotSt:'Released', total:850, alloc:0, unit:'kg', expiry:'+145d', loc:'WH-A Rack 3', sup:'Avicel FMC' },
+  'LOT-API-01': { id:'LOT-API-01', defId:'MAT-MET-API', name:'Metformin HCl API', cls:'Active Pharma Ingredient', lotSt:'Quarantine', total:240, alloc:0, unit:'kg', expiry:'+60d', loc:'WH-B Secure', sup:'Teva API' },
+  'LOT-PVP-01': { id:'LOT-PVP-01', defId:'MAT-PVP-K30', name:'Povidone K30', cls:'Binder', lotSt:'Released', total:90, alloc:48, unit:'kg', expiry:'+12d', loc:'WH-A Rack 2', sup:'BASF' },
+  'LOT-LAC-01': { id:'LOT-LAC-01', defId:'MAT-LAC', name:'Lactose Monohydrate', cls:'Excipient', lotSt:'Released', total:1200, alloc:0, unit:'kg', expiry:'+200d', loc:'WH-A Rack 1', sup:'DFE Pharma' },
+  'LOT-MGS-01': { id:'LOT-MGS-01', defId:'MAT-MGS', name:'Magnesium Stearate', cls:'Excipient', lotSt:'Released', total:95, alloc:0, unit:'kg', expiry:'+210d', loc:'WH-A Rack 7', sup:'Mallinckrodt' },
+  'LOT-COAT-01':{ id:'LOT-COAT-01', defId:'MAT-COAT', name:'Opadry II Film Coat', cls:'Film Coat', lotSt:'Hold', total:30, alloc:0, unit:'kg', expiry:'+90d', loc:'WH-B Shelf 2', sup:'Colorcon' }
+};
+
+/* ---- JOBS (requirements only) ---- */
+const JD = [
+  { id:'JOB-001', name:'Metformin 500mg Batch B-0041', prod:'TAB-MET-500', pri:1, scope:'Line-2', sH:6, eH:16, qty:500000, qU:'tablets', seq:['Granulation','Blending','Compression'],
+    eqReq:[{id:'EQ-101',role:'Granulation',reqCap:120,capU:'kg/h'},{id:'EQ-202',role:'Blending',reqCap:400,capU:'L'},{id:'EQ-301',role:'Compression',reqCap:300000,capU:'tabs/h'}],
+    pReq: [{id:'OP-101',role:'Granulation Operator'},{id:'OP-203',role:'Sr. Blending Operator'}],
+    mReq: [{id:'LOT-MCC-01',qty:180,unit:'kg',ph:'Granulation'},{id:'LOT-API-01',qty:120,unit:'kg',ph:'Granulation'},{id:'LOT-MGS-01',qty:10,unit:'kg',ph:'Blending'}] },
+  { id:'JOB-002', name:'Metformin 850mg Granules B-0042', prod:'GRAN-MET-850', pri:2, scope:'Line-2', sH:10.5, eH:14.5, qty:300, qU:'kg', seq:['Granulation'],
+    eqReq:[{id:'EQ-101',role:'Granulation',reqCap:120,capU:'kg/h'}],
+    pReq: [{id:'OP-101',role:'Granulation Operator'}],
+    mReq: [{id:'LOT-MCC-01',qty:140,unit:'kg',ph:'Granulation'},{id:'LOT-PVP-01',qty:48,unit:'kg',ph:'Granulation'}] },
+  { id:'JOB-003', name:'Lisinopril 10mg Granulation B-0043', prod:'GRAN-LIS-10', pri:2, scope:'Line-2', sH:6, eH:9.5, qty:180, qU:'kg', seq:['Granulation'],
+    eqReq:[{id:'EQ-102',role:'Granulation',reqCap:100,capU:'kg/h'}],
+    pReq: [{id:'OP-422',role:'Granulation Operator (supervised)'}],
+    mReq: [{id:'LOT-MGS-01',qty:8,unit:'kg',ph:'Granulation'},{id:'LOT-LAC-01',qty:230,unit:'kg',ph:'Granulation'}] },
+  { id:'JOB-004', name:'Lisinopril 20mg Granulation B-0044', prod:'GRAN-LIS-20', pri:3, scope:'Line-2', sH:9.5, eH:13, qty:200, qU:'kg', seq:['Granulation'],
+    eqReq:[{id:'EQ-102',role:'Granulation',reqCap:100,capU:'kg/h'}],
+    pReq: [{id:'OP-507',role:'Blending Operator (assigned — primary)'}],
+    mReq: [{id:'LOT-PVP-01',qty:42,unit:'kg',ph:'Granulation'},{id:'LOT-LAC-01',qty:230,unit:'kg',ph:'Granulation'}] },
+  { id:'JOB-005', name:'Amoxicillin 500mg Blending B-0045', prod:'BLEND-AMX-500', pri:2, scope:'Line-2', sH:14, eH:22, qty:650, qU:'kg', seq:['Blending'],
+    eqReq:[{id:'EQ-202',role:'Blending',reqCap:650,capU:'L'}],
+    pReq: [{id:'OP-114',role:'Blending Operator'}],
+    mReq: [{id:'LOT-LAC-01',qty:230,unit:'kg',ph:'Blending'},{id:'LOT-COAT-01',qty:28,unit:'kg',ph:'Blending'}] },
+  { id:'JOB-006', name:'Amoxicillin 500mg Compression B-0046', prod:'TAB-AMX-500', pri:3, scope:'Line-2', sH:6, eH:15, qty:400000, qU:'tablets', seq:['Compression'],
+    eqReq:[{id:'EQ-302',role:'Compression',reqCap:300000,capU:'tabs/h'}],
+    pReq: [{id:'OP-203',role:'Sr. Blending Operator'}],
+    mReq: [{id:'LOT-COAT-01',qty:28,unit:'kg',ph:'Compression'}] }
+];
+
+/* ================================================================
+   CONSTRAINT RULE ENGINE
+   ================================================================ */
+function avail(m){ return m.total - m.alloc; }
+
+function evalJob(j){
+  const cs=[], sg=[];
+
+  /* Rule 1: Equipment */
+  j.eqReq.forEach(function(req){
+    var eq=EQ[req.id]; if(!eq) return;
+    if(eq.status==='alert'){
+      cs.push({type:'equipment',sev:'alert',field:req.id,role:req.role,
+        issue:eq.name+' ('+req.id+') is BLOCKED - '+( eq.calDue||'Offline'),
+        req:req.reqCap+' '+req.capU, avail:'0 '+req.capU+' (unit offline)',
+        rule:'EquipmentCapability.EffectiveEndTime lapsed'});
+      var bk=Object.values(EQ).find(function(x){ return x.cls===eq.cls&&x.status==='ok'&&x.id!==eq.id&&x.scope===eq.scope; });
+      sg.push(bk ? 'Reassign '+req.role+' from '+req.id+' to '+bk.id+' ('+bk.name+') - same class, '+bk.cap+' '+bk.capU+' available on '+bk.scope
+                 : 'No same-class backup found for '+req.id+'. Escalate for emergency calibration.');
+    } else if(eq.status==='warn'&&eq.maint){
+      if(j.sH<eq.maint.e && j.eH>eq.maint.s){
+        cs.push({type:'equipment',sev:'warn',field:req.id,role:req.role,
+          issue:eq.name+' enters maintenance at '+t(eq.maint.s)+'. Job ends '+t(j.eH)+' - overlap risk if batch overruns.',
+          req:'Job complete by '+t(eq.maint.s), avail:'Available until '+t(eq.maint.s),
+          rule:'EquipmentCapability.MaintenanceWindow overlaps OperationsSchedule.EndTime'});
+        sg.push('Alert operator at '+t(eq.maint.s-0.5)+' to clear '+req.id+' before '+t(eq.maint.s)+' maintenance window');
+      }
+    }
+    if(eq.status!=='alert'&&eq.cap<req.reqCap){
+      cs.push({type:'equipment',sev:'alert',field:req.id,role:req.role,
+        issue:eq.name+' capacity '+eq.cap+' '+eq.capU+' is below requirement of '+req.reqCap+' '+req.capU,
+        req:req.reqCap+' '+req.capU, avail:eq.cap+' '+eq.capU,
+        rule:'EquipmentCapability.CapacityQuantity < RequiredCapacity'});
+      sg.push('Source '+req.cls+' equipment with capacity >= '+req.reqCap+' '+req.capU+' on '+j.scope);
+    }
+  });
+
+  /* Rule 2: Personnel */
+  j.pReq.forEach(function(req){
+    var p=PE[req.id]; if(!p) return;
+    if(p.availSt==='alert'){
+      cs.push({type:'personnel',sev:'alert',field:req.id,role:req.role,
+        issue:p.name+' ('+req.id+') UNAVAILABLE - '+p.unavail,
+        req:'Qualified '+p.cls, avail:p.name+' - NOT available ('+p.unavail+')',
+        rule:'PersonnelCapability.EffectiveEndDate expired or person on leave'});
+      var bk=Object.values(PE).find(function(x){ return x.cls===p.cls&&x.availSt==='ok'&&x.certSt==='ok'&&x.id!==p.id; });
+      sg.push(bk ? 'Replace '+p.name+' ('+req.id+') with '+bk.name+' ('+bk.id+') - same class ('+p.cls+'), cert current ('+bk.certEx+')'
+                 : 'No qualified same-class backup for '+p.cls+'. Escalate to Shift Leader SL-002 (Deepa Nair).');
+    } else if(p.certSt==='alert'){
+      cs.push({type:'personnel',sev:'alert',field:req.id,role:req.role,
+        issue:p.name+' ('+req.id+') qualification EXPIRED - '+p.certEx+'. Cannot execute GMP tasks.',
+        req:'Current '+p.qual, avail:p.name+' - cert EXPIRED',
+        rule:'PersonnelCapability.Qualification.ExpiryDate < today (21 CFR Part 11)'});
+      var bk2=Object.values(PE).find(function(x){ return x.cls===p.cls&&x.certSt==='ok'&&x.availSt==='ok'&&x.id!==p.id; });
+      sg.push(bk2 ? 'Assign '+bk2.name+' ('+bk2.id+') for batch review - same class, cert valid '+bk2.certEx
+                  : 'No qualified backup for QA review. Escalate immediately.');
+    } else if(p.certSt==='warn'){
+      cs.push({type:'personnel',sev:'warn',field:req.id,role:req.role,
+        issue:p.name+' ('+req.id+') certification expiring - '+p.certEx+'. Risk if not renewed before next batch.',
+        req:'Current '+p.qual, avail:p.name+' - cert expires '+p.certEx,
+        rule:'PersonnelCapability.Qualification.ExpiryDate within 30-day warning window'});
+      var bk3=Object.values(PE).find(function(x){ return x.cls===p.cls&&x.certSt==='ok'&&x.availSt==='ok'&&x.id!==p.id; });
+      sg.push('Schedule recertification for '+p.name+' ('+req.id+') this week.'+(bk3?' Pre-assign '+bk3.name+' ('+bk3.id+') as interim backup.':''));
+    } else if(p.supervised){
+      cs.push({type:'personnel',sev:'warn',field:req.id,role:req.role,
+        issue:p.name+' ('+req.id+') cert in progress ('+p.certEx+'). Requires supervisor co-sign for all tasks.',
+        req:'Certified '+p.cls, avail:p.name+' - supervised tasks only',
+        rule:'PersonnelCapability.Qualification.Status = IN-PROGRESS'});
+      var bk4=Object.values(PE).find(function(x){ return x.cls===p.cls&&x.certSt==='ok'&&x.availSt==='ok'&&x.id!==p.id; });
+      sg.push('Assign certified '+p.cls+(bk4?' ('+bk4.name+' '+bk4.id+')'+'':'')+' as supervisor for '+p.name+' on this job.');
+    }
+  });
+
+  /* Rule 3: Materials */
+  j.mReq.forEach(function(req){
+    var m=MA[req.id]; if(!m) return;
+    var av=avail(m);
+    if(m.lotSt==='Quarantine'){
+      cs.push({type:'material',sev:'alert',field:req.id,role:req.ph+' - '+m.name,
+        issue:'LOT '+req.id+' ('+m.name+') is under QUARANTINE. Cannot be dispensed to production.',
+        req:req.qty+' '+req.unit+' (Released)', avail:av+' '+req.unit+' - STATUS: QUARANTINE',
+        total:m.total+' '+m.unit, allocEl:m.alloc+' '+m.unit,
+        rule:'MaterialLot.LotStatus = Quarantine -> dispensing blocked'});
+      sg.push('Escalate QA release for '+req.id+' ('+m.name+'). ETA 2-3 days. Alternatively source alternate lot from WH-C to unblock '+j.id+'.');
+    } else if(m.lotSt==='Hold'){
+      cs.push({type:'material',sev:'alert',field:req.id,role:req.ph+' - '+m.name,
+        issue:'LOT '+req.id+' ('+m.name+') is on HOLD - CoA not received from '+m.sup+'.',
+        req:req.qty+' '+req.unit+' (Released)', avail:av+' '+req.unit+' - STATUS: HOLD',
+        total:m.total+' '+m.unit, allocEl:m.alloc+' '+m.unit,
+        rule:'MaterialLot.LotStatus = Hold -> dispensing blocked until docs received'});
+      sg.push('Expedite CoA from '+m.sup+' for '+req.id+'. If delayed >1 shift, check QC archive for alternate lots to unblock '+j.id+'.');
+    } else if(av<req.qty){
+      cs.push({type:'material',sev:'alert',field:req.id,role:req.ph+' - '+m.name,
+        issue:m.name+' ('+req.id+'): available '+av+' '+req.unit+', required '+req.qty+' '+req.unit+'. Shortfall: '+(req.qty-av)+' '+req.unit+'.',
+        req:req.qty+' '+req.unit, avail:av+' '+req.unit+' (Total '+m.total+', allocated elsewhere '+m.alloc+')',
+        total:m.total+' '+m.unit, allocEl:m.alloc+' '+m.unit,
+        rule:'AvailableQty = TotalStock - AllocatedElsewhere < RequiredQty'});
+      sg.push('Raise urgent PO for '+(req.qty-av+10)+' '+req.unit+' of '+m.name+' from '+m.sup+'. Prioritise '+j.id+' with available '+av+' '+req.unit+' and defer lower-priority job.');
+    }
+  });
+
+  var st = cs.some(function(c){return c.sev==='alert';}) ? 'alert'
+          : cs.some(function(c){return c.sev==='warn';}) ? 'warn' : 'ok';
+  return { j:j, cs:cs, sg:sg, st:st, score:cs.length };
+}
+
+var RES = JD.map(evalJob);
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+function t(h){ var hh=Math.floor(h),mm=Math.round((h-hh)*60); return (hh<10?'0'+hh:hh)+':'+(mm===0?'00':mm); }
+function pct(h){ return ((h-SHIFT.start)/SHIFT.hours*100).toFixed(2)+'%'; }
+function wid(s,e){ return ((e-s)/SHIFT.hours*100).toFixed(2)+'%'; }
+function sc(n){ return n===0?'s0':n===1?'s1':'s2'; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+/* ================================================================
+   TAB SWITCH
+   ================================================================ */
+function switchTab(name,btn){
+  ['sched','res','mat'].forEach(function(t){ document.getElementById('t-'+t).style.display=t===name?'grid':'none'; });
+  document.querySelectorAll('.tb').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+}
+
+/* ================================================================
+   JOB LIST
+   ================================================================ */
+var jFilt='all';
+function fj(btn,f){
+  document.querySelectorAll('.fb').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on'); jFilt=f; renderJobs();
+}
+
+function renderJobs(){
+  var rows=jFilt==='all'?RES:RES.filter(function(r){ return r.st===jFilt; });
+  var html=rows.map(function(r){
+    var j=r.j;
+    var issues=r.cs.slice(0,2).map(function(c){
+      return '<div style="font-size:9.5px;color:'+(c.sev==='alert'?'var(--red)':'var(--amber)')+';margin-top:3px;display:flex;align-items:flex-start;gap:4px;line-height:1.4">'+(c.sev==='alert'?'&#10005;':'&#9888;')+' <span>'+esc(c.issue)+'</span></div>';
+    }).join('');
+    return '<div class="card '+r.st+'" onclick="openJob(\''+j.id+'\')">'+
+      '<div class="ctop"><div>'+
+        '<div class="cid">'+j.id+' &middot; P'+j.pri+' &middot; '+j.scope+'</div>'+
+        '<div class="cname">'+esc(j.name)+'</div>'+
+        '<div class="csub">'+t(j.sH)+' &ndash; '+t(j.eH)+' &middot; '+j.qty.toLocaleString()+' '+j.qU+'</div>'+
+      '</div><span class="bdg '+(r.st==='ok'?'ok-b':r.st==='warn'?'warn-b':'alert-b')+'">'+(r.st==='ok'?'READY':r.st==='warn'?'WARNING':'BLOCKED')+'</span></div>'+
+      '<div style="display:flex;align-items:center;gap:7px;margin-top:7px">'+
+        '<span class="sp '+sc(r.score)+'">&#9670; '+r.score+' constraint'+(r.score!==1?'s':'')+'</span>'+
+        '<span style="font-family:var(--mono);font-size:8.5px;color:var(--ink-m)">'+j.seq.join(' &rarr; ')+'</span>'+
+      '</div>'+issues+
+      (r.cs.length>2?'<div style="font-family:var(--mono);font-size:8.5px;color:var(--ink-m);margin-top:2px">+'+(r.cs.length-2)+' more&hellip;</div>':'')+
+    '</div>';
+  }).join('');
+  document.getElementById('jlist').innerHTML = html || '<div style="color:var(--ink-m);font-size:12px;padding:8px">No jobs match.</div>';
+  document.getElementById('hd-b').textContent=RES.filter(function(r){return r.st==='alert';}).length;
+  document.getElementById('hd-w').textContent=RES.filter(function(r){return r.st==='warn';}).length;
+  document.getElementById('hd-s').textContent=RES.reduce(function(a,r){return a+r.sg.length;},0);
+}
+
+/* ================================================================
+   GANTT
+   ================================================================ */
+function renderGantt(){
+  var nowP=((NOW_H-SHIFT.start)/SHIFT.hours*100).toFixed(2);
+  var slots=''; for(var h=SHIFT.start;h<=SHIFT.end;h+=2) slots+='<div class="gslot">'+(h<10?'0'+h:h)+':00</div>';
+  var hdr='<div class="ghdr"><div class="glc"></div><div class="gtr">'+slots+'</div></div>';
+  var cm={prod:'gprod',maint:'gmaint',block:'gblock',idle:'gidle',leave:'gleave',ai:'gai',partial:'gpartial'};
+
+  function row(name,sub,sched){
+    var blks=sched.map(function(s){
+      var lbl=s.lbl.length<22?s.lbl:s.lbl.slice(0,20)+'...';
+      return '<div class="gblk '+(cm[s.t]||'gidle')+'" style="left:'+pct(s.s)+';width:'+wid(s.s,s.e)+'" onclick="toast(\'&#9633;\',\''+esc(name)+'\',\''+esc(s.lbl)+' ('+t(s.s)+'-'+t(s.e)+')\')">'+esc(lbl)+'</div>';
+    }).join('');
+    return '<div class="grow"><div class="grlbl"><div class="grlbl-n">'+esc(name)+'</div><div class="grlbl-s">'+esc(sub)+'</div></div>'+
+      '<div class="gtrack"><div class="gnow" style="left:'+nowP+'%"></div>'+blks+'</div></div>';
+  }
+
+  var eRows=Object.values(EQ).map(function(e){ return row(e.name,e.model+' &middot; '+e.scope,e.sched); }).join('');
+  var pRows=Object.values(PE).map(function(p){ return row(p.name,p.cls+' &middot; Shift '+p.shift,p.sched); }).join('');
+  var aiRows=
+    row('AI: Blender C backup','EQ-203 &middot; Proposed for EQ-201 replacement',[{s:6,e:22,t:'ai',lbl:'Proposed replacement for blocked EQ-201'}])+
+    row('AI: Rajan Mehta cover','OP-114 &middot; Proposed JOB-004 cover for OP-507 leave',[{s:6,e:9.5,t:'prod',lbl:'Current duties'},{s:9.5,e:13,t:'ai',lbl:'AI: Cover JOB-004 (OP-507 on leave)'},{s:13,e:22,t:'idle',lbl:'Available'}]);
+
+  document.getElementById('gantt').innerHTML=hdr+
+    '<div class="gsec">Equipment ('+SHIFT.line+')</div>'+eRows+
+    '<div class="gsec">Personnel ('+SHIFT.line+')</div>'+pRows+
+    '<div class="gsec" style="color:var(--teal)">AI Suggestions (pending approval)</div>'+aiRows;
+}
+
+/* ================================================================
+   SCHEDULE AI FLAGS
+   ================================================================ */
+function renderSchedAI(){
+  var total=RES.reduce(function(a,r){return a+r.cs.length;},0);
+  var bl=RES.filter(function(r){return r.st==='alert';}).length;
+  var wn=RES.filter(function(r){return r.st==='warn';}).length;
+  document.getElementById('sai-sum').innerHTML='Constraint engine evaluated <b>'+JD.length+' jobs</b> against '+Object.keys(EQ).length+' equipment units, '+Object.keys(PE).length+' personnel, and '+Object.keys(MA).length+' material lots. Found <b>'+total+' total constraints</b>: '+bl+' blocked, '+wn+' warnings. <b>'+RES.reduce(function(a,r){return a+r.sg.length;},0)+' specific AI actions</b> generated.';
+
+  var html=RES.filter(function(r){return r.cs.length>0;}).map(function(r){
+    var trace=r.cs.map(function(c){
+      return '<div style="display:flex;gap:5px;align-items:flex-start;margin-bottom:2px">'+
+        '<span style="color:'+(c.sev==='alert'?'var(--red)':'var(--amber)')+';font-size:9.5px">'+(c.sev==='alert'?'&#10005;':'&#9888;')+'</span>'+
+        '<span style="font-family:var(--mono);font-size:8px;color:var(--ink-m)">['+c.type.toUpperCase()+'] '+esc(c.field)+'</span>'+
+        '<span style="font-size:9px;color:var(--ink-s)">'+esc(c.issue)+'</span></div>';
+    }).join('');
+    var btns=r.sg.map(function(s){
+      return '<button class="aab teal" onclick="toast(\'&#9670;\',\'Action logged\',\''+esc(s.slice(0,80))+'\')">&#8594; '+esc(s)+'</button>';
+    }).join('');
+    return '<div class="aif '+r.st+'">'+
+      '<div class="aift"><span class="aifta ta-'+r.st+'">'+(r.st==='alert'?'BLOCKED':'WARNING')+'</span><span class="aifsrc">'+esc(r.j.id)+' &middot; '+esc(r.j.name)+'</span></div>'+
+      '<div class="aifm"><b>Constraint score: '+r.score+'</b> &middot; '+r.j.seq.join(' &rarr;')+' &middot; '+t(r.j.sH)+'&ndash;'+t(r.j.eH)+'</div>'+
+      '<div class="aitrace"><b>Rule engine trace:</b><br>'+trace+'</div>'+
+      '<div class="aifacts"><div style="font-family:var(--mono);font-size:8.5px;color:var(--teal);margin-bottom:3px">&#9658; AI RECOMMENDATIONS</div>'+btns+'</div>'+
+    '</div>';
+  }).join('');
+  document.getElementById('sai-flags').innerHTML=html||'<div class="aif ok"><div class="aift"><span class="aifta ta-ok">ALL CLEAR</span></div><div class="aifm">No constraints detected.</div></div>';
+}
+
+/* ================================================================
+   EQUIPMENT LIST
+   ================================================================ */
+function renderEquip(){
+  document.getElementById('elist').innerHTML=Object.values(EQ).map(function(e){
+    var linked=RES.filter(function(r){return r.j.eqReq.some(function(req){return req.id===e.id;});});
+    var flagged=linked.some(function(r){return r.cs.some(function(c){return c.field===e.id;});});
+    return '<div class="card '+e.status+'" onclick="openEquip(\''+e.id+'\')">'+
+      '<div class="ctop">'+
+        '<div style="display:flex;align-items:center;gap:8px"><div class="cicon">&#9881;</div>'+
+        '<div><div class="cid">'+e.id+' &middot; '+e.scope+'</div><div class="cname">'+esc(e.name)+'</div><div class="csub">'+esc(e.model)+'</div></div></div>'+
+        '<span class="bdg '+(e.status==='ok'?'ok-b':e.status==='warn'?'warn-b':'alert-b')+'">'+(e.status==='ok'?'READY':e.status==='warn'?'WARNING':'BLOCKED')+'</span>'+
+      '</div><div class="cdiv"></div>'+
+      '<div class="crow"><div class="ck">EquipmentClassID</div><div class="cv purple-v">'+e.cls+'</div></div>'+
+      '<div class="crow"><div class="ck">CapacityQuantity</div><div class="cv blue-v">'+e.cap.toLocaleString()+' '+e.capU+'</div></div>'+
+      '<div class="crow"><div class="ck">OEE</div><div class="cv '+(e.oee>80?'ok-v':e.oee>60?'warn-v':'alert-v')+'">'+e.oee+'%</div></div>'+
+      (e.calDue?'<div class="crow"><div class="ck">Calibration</div><div class="cv alert-v">'+esc(e.calDue)+'</div></div>':'')+
+      (e.maint?'<div class="crow"><div class="ck">Maint window</div><div class="cv warn-v">'+t(e.maint.s)+'&ndash;'+t(e.maint.e)+'</div></div>':'')+
+      '<div class="crow"><div class="ck">Linked jobs</div><div class="cv blue-v">'+( linked.map(function(r){return r.j.id;}).join(', ')||'None')+'</div></div>'+
+      (flagged?'<div style="margin-top:4px;font-size:9px;color:var(--red)">&#10005; Flagged by constraint engine</div>':'')+
+    '</div>';
+  }).join('');
+}
+
+/* ================================================================
+   PERSONNEL LIST
+   ================================================================ */
+function renderPersonnel(){
+  document.getElementById('plist').innerHTML=Object.values(PE).map(function(p){
+    var linked=RES.filter(function(r){return r.j.pReq.some(function(req){return req.id===p.id;});});
+    var st=p.availSt==='alert'?'alert':p.certSt==='alert'?'alert':p.certSt==='warn'?'warn':'ok';
+    return '<div class="card '+st+'" onclick="openPerson(\''+p.id+'\')">'+
+      '<div class="ctop">'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+        '<div class="cicon" style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--blue)">'+p.id.slice(0,2)+'</div>'+
+        '<div><div class="cid">'+p.id+' &middot; Shift '+p.shift+' &middot; '+p.scope+'</div><div class="cname">'+esc(p.name)+'</div><div class="csub">'+esc(p.cls)+'</div></div></div>'+
+        '<span class="bdg '+(st==='ok'?'ok-b':st==='warn'?'warn-b':'alert-b')+'">'+(st==='ok'?'QUALIFIED':st==='warn'?'WARNING':'BLOCKED')+'</span>'+
+      '</div><div class="cdiv"></div>'+
+      '<div class="crow"><div class="ck">Qualification</div><div class="cv purple-v" style="font-size:9px">'+esc(p.qual)+'</div></div>'+
+      '<div class="crow"><div class="ck">Cert status</div><div class="cv '+(p.certSt==='ok'?'ok-v':p.certSt==='warn'?'warn-v':'alert-v')+'">'+esc(p.certEx)+'</div></div>'+
+      '<div class="crow"><div class="ck">Availability</div><div class="cv '+(p.availSt==='ok'?'ok-v':'alert-v')+'">'+esc(p.unavail||'Available - Shift '+p.shift)+'</div></div>'+
+      (p.supervised?'<div class="crow"><div class="ck">Restriction</div><div class="cv warn-v">Supervised only</div></div>':'')+
+      '<div class="crow"><div class="ck">Assigned jobs</div><div class="cv blue-v">'+( linked.map(function(r){return r.j.id;}).join(', ')||'None')+'</div></div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ================================================================
+   RESOURCE AI PANEL
+   ================================================================ */
+function renderResAI(){
+  var eqOk=Object.values(EQ).filter(function(e){return e.status==='ok';}).length;
+  var eqT=Object.keys(EQ).length;
+  var pOk=Object.values(PE).filter(function(p){return p.availSt==='ok'&&p.certSt==='ok';}).length;
+  var pT=Object.keys(PE).length;
+  var bl=Object.values(EQ).filter(function(e){return e.status==='alert';}).length+Object.values(PE).filter(function(p){return p.availSt==='alert'||p.certSt==='alert';}).length;
+  var wn=Object.values(EQ).filter(function(e){return e.status==='warn';}).length+Object.values(PE).filter(function(p){return p.certSt==='warn';}).length;
+  document.getElementById('rai-sum').innerHTML='<b>'+eqOk+'/'+eqT+' equipment units</b> available on '+SHIFT.line+'. <b>'+pOk+'/'+pT+' personnel</b> fully qualified. <b>'+bl+' critical blocks</b> and <b>'+wn+' warnings</b> traced to ISA-95 Capability record violations.';
+  document.getElementById('rcovg').innerHTML=[
+    {v:eqOk+'/'+eqT,l:'Equipment\nReady',   c:bl>0?'var(--amber)':'var(--green)'},
+    {v:pOk+'/'+pT,  l:'Personnel\nQualified',c:pOk<pT?'var(--amber)':'var(--green)'},
+    {v:bl,           l:'Critical\nBlocks',   c:'var(--red)'},
+    {v:wn,           l:'Active\nWarnings',   c:'var(--amber)'}
+  ].map(function(c){return '<div class="cc"><div class="ccv" style="color:'+c.c+'">'+c.v+'</div><div class="ccl">'+c.l+'</div></div>';}).join('');
+  var avgOee=Math.round(Object.values(EQ).reduce(function(a,e){return a+e.oee;},0)/eqT);
+  document.getElementById('rrisk').innerHTML=[
+    {l:'Equipment offline', p:Math.round(Object.values(EQ).filter(function(e){return e.status==='alert';}).length/eqT*100), c:'var(--red)'},
+    {l:'Personnel unavail.',p:Math.round(Object.values(PE).filter(function(p){return p.availSt==='alert';}).length/pT*100), c:'var(--red)'},
+    {l:'Cert expiry risk',  p:Math.round(Object.values(PE).filter(function(p){return p.certSt==='warn';}).length/pT*100+10), c:'var(--amber)'},
+    {l:'OEE gap vs target', p:100-avgOee, c:'var(--blue)'}
+  ].map(function(g){return '<div class="rr"><div class="rl">'+g.l+'</div><div class="rb"><div class="rf" style="width:'+Math.min(g.p,100)+'%;background:'+g.c+'"></div></div><div class="rp">'+Math.min(g.p,100)+'%</div></div>';}).join('');
+  var rcs=RES.flatMap(function(r){return r.cs.filter(function(c){return c.type==='equipment'||c.type==='personnel';}).map(function(c){return {c:c,r:r};});});
+  document.getElementById('rflags').innerHTML=rcs.map(function(x){
+    return '<div class="aif '+x.c.sev+'">'+
+      '<div class="aift"><span class="aifta ta-'+x.c.sev+'">'+x.c.type.toUpperCase()+'</span><span class="aifsrc">'+esc(x.c.field)+' &middot; '+esc(x.r.j.id)+'</span></div>'+
+      '<div class="aifm">'+esc(x.c.issue)+'</div>'+
+      '<div class="aitrace"><b>Rule:</b> '+esc(x.c.rule)+'<br><b>Required:</b> '+esc(x.c.req)+'<br><b>Available:</b> '+esc(x.c.avail)+'</div>'+
+      (x.r.sg[0]?'<div class="aifacts"><button class="aab teal" onclick="toast(\'&#9670;\',\'Action logged\',\''+esc(x.r.sg[0].slice(0,90))+'\')">&#8594; '+esc(x.r.sg[0].slice(0,90))+'</button></div>':'')+
+    '</div>';
+  }).join('')||'<div class="aif ok"><div class="aift"><span class="aifta ta-ok">CLEAR</span></div><div class="aifm">No resource constraints.</div></div>';
+}
+
+/* ================================================================
+   MATERIALS
+   ================================================================ */
+function renderMat(){
+  document.getElementById('mlist').innerHTML=Object.values(MA).map(function(m){
+    var av=avail(m);
+    var totalNeed=RES.flatMap(function(r){return r.j.mReq.filter(function(req){return req.id===m.id;});}).reduce(function(a,req){return a+req.qty;},0);
+    var st=m.lotSt!=='Released'?'alert':av<totalNeed?'alert':'ok';
+    return '<div class="card '+st+'" onclick="openMat(\''+m.id+'\')">'+
+      '<div class="ctop">'+
+        '<div><div class="cid">'+m.id+' &middot; '+m.defId+'</div><div class="cname" style="font-size:12px">'+esc(m.name)+'</div><div class="csub">'+esc(m.cls)+'</div></div>'+
+        '<span class="bdg '+(m.lotSt==='Released'?'ok-b':m.lotSt==='Quarantine'?'alert-b':'warn-b')+'">'+m.lotSt+'</span>'+
+      '</div><div class="cdiv"></div>'+
+      '<div class="crow"><div class="ck">Total stock</div><div class="cv blue-v">'+m.total+' '+m.unit+'</div></div>'+
+      (m.alloc>0?'<div class="crow"><div class="ck">Allocated elsewhere</div><div class="cv warn-v">&minus;'+m.alloc+' '+m.unit+'</div></div>':'')+
+      '<div class="crow"><div class="ck">Available qty</div><div class="cv '+(av>=totalNeed&&m.lotSt==='Released'?'ok-v':'alert-v')+'">'+av+' '+m.unit+'</div></div>'+
+      '<div class="crow"><div class="ck">Total demand</div><div class="cv muted-v">'+totalNeed+' '+m.unit+'</div></div>'+
+      '<div class="crow"><div class="ck">Balance</div><div class="cv '+(av-totalNeed>=0&&m.lotSt==='Released'?'ok-v':'alert-v')+'">'+(av-totalNeed>=0?'+':''+(av-totalNeed))+' '+m.unit+'</div></div>'+
+      '<div class="crow"><div class="ck">Expiry</div><div class="cv muted-v">'+m.expiry+'</div></div>'+
+    '</div>';
+  }).join('');
+
+  var demHtml=Object.values(MA).map(function(m){
+    var av=avail(m);
+    var demands=RES.flatMap(function(r){return r.j.mReq.filter(function(req){return req.id===m.id;}).map(function(req){return {jid:r.j.id,req:req};});});
+    if(!demands.length) return '';
+    var rows=demands.map(function(d){
+      var ok=m.lotSt==='Released'&&av>=d.req.qty;
+      return '<tr><td class="fid">'+d.jid+'</td><td style="font-size:9px;color:var(--ink-m)">'+d.req.ph+'</td>'+
+        '<td style="font-family:var(--mono);font-size:9px;color:var(--ink-s)">'+d.req.qty+' '+d.req.unit+'</td>'+
+        '<td style="font-family:var(--mono);font-size:9px;color:'+(av>=d.req.qty&&m.lotSt==='Released'?'var(--green)':'var(--red)')+'">'+av+' '+m.unit+(m.lotSt!=='Released'?' ('+m.lotSt+')':'')+'</td>'+
+        '<td><span class="vd '+(ok?'vok':'vfail')+'">'+(ok?'OK':'FAIL')+'</span></td></tr>';
+    }).join('');
+    return '<div class="card ok" style="cursor:default">'+
+      '<div class="cid" style="margin-bottom:3px">'+m.defId+'</div><div class="cname" style="font-size:11.5px">'+esc(m.name)+'</div>'+
+      '<div class="cdiv"></div>'+
+      '<table class="ctbl"><tr><th>Job</th><th>Phase</th><th>Required</th><th>Available</th><th></th></tr>'+rows+'</table>'+
+    '</div>';
+  }).filter(Boolean).join('');
+  document.getElementById('mdlist').innerHTML=demHtml;
+
+  var mcs=[], seen={};
+  RES.forEach(function(r){
+    r.cs.filter(function(c){return c.type==='material';}).forEach(function(c,i){
+      if(!seen[c.field]){seen[c.field]=true; mcs.push({c:c,r:r,sg:r.sg[i]});}
+    });
+  });
+  var bl=mcs.filter(function(x){return x.c.sev==='alert';}).length;
+  document.getElementById('mai-sum').innerHTML='<b>'+mcs.length+' material constraint'+(mcs.length!==1?'s':'')+'</b> detected. '+bl+' lot'+(bl!==1?'s':'')+' blocked (Quarantine/Hold) — directly impacting production. Engine has generated specific sourcing and prioritisation actions.';
+  document.getElementById('mflags').innerHTML=mcs.map(function(x){
+    return '<div class="aif '+x.c.sev+'">'+
+      '<div class="aift"><span class="aifta ta-'+x.c.sev+'">MATERIAL</span><span class="aifsrc">'+esc(x.c.field)+' &middot; '+esc(x.r.j.id)+'</span></div>'+
+      '<div class="aifm">'+esc(x.c.issue)+'</div>'+
+      '<div class="aitrace"><b>Rule:</b> '+esc(x.c.rule)+'<br>'+
+        (x.c.total?'<b>Total stock:</b> '+esc(x.c.total)+' &nbsp; <b>Allocated:</b> '+esc(x.c.allocEl)+' &nbsp; <b>Available:</b> '+avail(MA[x.c.field])+' '+MA[x.c.field].unit+'<br>':'')+
+        '<b>Required:</b> '+esc(x.c.req)+'</div>'+
+      (x.sg?'<div class="aifacts"><button class="aab teal" onclick="toast(\'&#9670;\',\'Action logged\',\''+esc(x.sg.slice(0,90))+'\')">&#8594; '+esc(x.sg.slice(0,90))+'</button></div>':'')+
+    '</div>';
+  }).join('')||'<div class="aif ok"><div class="aift"><span class="aifta ta-ok">CLEAR</span></div><div class="aifm">No material constraints.</div></div>';
+}
+
+/* ================================================================
+   DRAWERS
+   ================================================================ */
+function openJob(id){
+  var r=RES.find(function(x){return x.j.id===id;}); if(!r) return;
+  var j=r.j;
+  document.getElementById('dey').textContent=j.id+' \u00b7 ISA-95 OperationsRequest';
+  document.getElementById('dname').textContent=j.name;
+  document.getElementById('dcls').textContent='Priority '+j.pri+' \u00b7 '+j.scope+' \u00b7 '+r.score+' constraint'+(r.score!==1?'s':'');
+
+  function fr(k,v,vc){ return '<div class="dfr"><div class="dfk">'+k+'</div><div class="dfv '+(vc||'')+'">'+v+'</div></div>'; }
+  var eqRows=j.eqReq.map(function(req){
+    var eq=EQ[req.id], c=r.cs.find(function(x){return x.type==='equipment'&&x.field===req.id;}), ok=!c;
+    var sl=eq?eq.status==='alert'?'BLOCKED':eq.status==='warn'?'WARNING':'READY':'?';
+    var sc2=eq?eq.status==='alert'?'alert-v':eq.status==='warn'?'warn-v':'ok-v':'muted-v';
+    return '<tr><td class="fid">'+req.id+'</td><td style="font-size:9px;color:var(--ink-m)">'+esc(req.role)+'</td>'+
+      '<td style="font-family:var(--mono);font-size:9px;color:var(--ink-s)">'+req.reqCap.toLocaleString()+' '+req.capU+'</td>'+
+      '<td class="'+sc2+'" style="font-family:var(--mono);font-size:9px">'+sl+'</td>'+
+      '<td><span class="vd '+(ok?'vok':'vfail')+'">'+(ok?'OK':'FAIL')+'</span></td></tr>';
+  }).join('');
+  var pRows=j.pReq.map(function(req){
+    var p=PE[req.id], c=r.cs.find(function(x){return x.type==='personnel'&&x.field===req.id;}), ok=!c;
+    var al=p?p.unavail||(p.supervised?'Supervised only':'Available Shift '+p.shift):'?';
+    var ac=p?p.availSt==='alert'?'alert-v':p.certSt==='warn'?'warn-v':'ok-v':'muted-v';
+    return '<tr><td class="fid">'+req.id+'<br><span style="font-size:8px;color:var(--ink-m)">'+(p?esc(p.name):'')+'</span></td>'+
+      '<td style="font-size:8.5px;color:var(--ink-m)">'+esc(req.role)+'</td>'+
+      '<td style="font-family:var(--mono);font-size:9px;color:'+(p?p.certSt==='ok'?'var(--green)':p.certSt==='warn'?'var(--amber)':'var(--red)':'var(--ink-m)')+'">'+( p?esc(p.certEx):'?')+'</td>'+
+      '<td class="'+ac+'" style="font-family:var(--mono);font-size:8.5px">'+esc(al)+'</td>'+
+      '<td><span class="vd '+(ok?'vok':'vfail')+'">'+(ok?'OK':'FAIL')+'</span></td></tr>';
+  }).join('');
+  var mRows=j.mReq.map(function(req){
+    var m=MA[req.id], av=m?avail(m):0, c=r.cs.find(function(x){return x.type==='material'&&x.field===req.id;}), ok=!c;
+    var avd=m?av+' '+req.unit+(m.lotSt!=='Released'?' ('+m.lotSt+')':''):'?';
+    var ac2=!m?'muted-v':m.lotSt!=='Released'?'alert-v':av<req.qty?'alert-v':'ok-v';
+    return '<tr><td class="fid">'+req.id+'</td><td style="font-size:8.5px;color:var(--ink-m)">'+(m?esc(m.name):req.id)+'</td>'+
+      '<td style="font-family:var(--mono);font-size:9px;color:var(--ink-s)">'+req.qty+' '+req.unit+'</td>'+
+      '<td class="'+ac2+'" style="font-family:var(--mono);font-size:9px">'+esc(avd)+'</td>'+
+      '<td><span class="vd '+(ok?'vok':'vfail')+'">'+(ok?'OK':'FAIL')+'</span></td></tr>';
+  }).join('');
+
+  var hasPCon=r.cs.some(function(c){return c.type==='personnel';});
+  var sugsBk=r.sg.filter(function(s){return s.includes('Replace')||s.includes('Assign')||s.includes('Schedule recert')||s.includes('supervisor');});
+  var recTxt=r.st==='alert'?'<b>'+r.score+' blocking constraint'+(r.score!==1?'s':'')+'.</b> Cannot dispatch to shop floor. Resolve all FAIL verdicts above first.'
+    :r.st==='warn'?'<b>'+r.score+' warning'+(r.score!==1?'s':'')+'.</b> Job can proceed with risk. Address flagged items before shift start.'
+    :'All constraints satisfied. Equipment, personnel, and materials verified. Job is ready to dispatch.';
+
+  document.getElementById('dbody').innerHTML=
+    '<div class="dsec"><div class="dstitle">OperationsRequest Fields</div>'+
+      fr('OperationsRequestID','<span class="blue-v">'+j.id+'</span>')+
+      fr('ProductDefinition',esc(j.prod))+
+      fr('RequestedQuantity',j.qty.toLocaleString()+' '+j.qU)+
+      fr('StartTime','<span class="blue-v">'+t(j.sH)+'</span>')+
+      fr('EndTime','<span class="blue-v">'+t(j.eH)+'</span>')+
+      fr('ProcessSequence','<span class="muted-v">'+j.seq.join(' &rarr; ')+'</span>')+
+      fr('HierarchyScope','<span class="muted-v">'+j.scope+'</span>')+
+      fr('Status','<span class="'+(r.st==='ok'?'ok-v':r.st==='warn'?'warn-v':'alert-v')+'">'+(r.st==='ok'?'Ready':r.st==='warn'?'Warning - proceed with caution':'Blocked - cannot dispatch')+'</span>')+
+      fr('Constraint Score','<span class="sp '+sc(r.score)+'" style="display:inline-flex">&#9670; '+r.score+' constraint'+(r.score!==1?'s':'')+'</span>')+
+    '</div>'+
+    '<div class="dsec"><div class="dstitle">Equipment Requirements ('+j.eqReq.length+')</div>'+
+      '<table class="ctbl"><tr><th>Equipment</th><th>Role</th><th>Required cap.</th><th>Status</th><th></th></tr>'+eqRows+'</table></div>'+
+    '<div class="dsec"><div class="dstitle">Personnel Requirements ('+j.pReq.length+')</div>'+
+      '<table class="ctbl"><tr><th>Assigned</th><th>Role</th><th>Cert</th><th>Availability</th><th></th></tr>'+pRows+'</table>'+
+      (hasPCon&&sugsBk.length?'<div class="sugbox" style="margin-top:7px"><span class="lbl">&#9670; AI &middot; Backup Personnel</span>'+sugsBk.map(function(s){return '&#8594; '+esc(s)+'<br>';}).join('')+'</div>':'')+
+    '</div>'+
+    '<div class="dsec"><div class="dstitle">Material Requirements ('+j.mReq.length+')</div>'+
+      '<table class="ctbl"><tr><th>Lot ID</th><th>Material</th><th>Required</th><th>Available</th><th></th></tr>'+mRows+'</table></div>'+
+    '<div class="dsec"><div class="dstitle">AI Recommendation</div>'+
+      '<div class="aibox"><span class="lbl">&#9670; AI &middot; Constraint Engine</span>'+recTxt+'</div>'+
+      (r.sg.length?'<div class="sugbox"><span class="lbl">&#9670; Specific Actions</span>'+r.sg.map(function(s){return '<div style="margin-bottom:3px">&#8594; '+esc(s)+'</div>';}).join('')+'</div>':'')+
+    '</div>'+
+    '<div class="dacts"><button class="dbtn dbtn-p" onclick="toast(\'&#9670;\',\'Dispatched\',\''+esc(j.name)+' pushed to shop floor queue.\');closeDrw()">Dispatch Job</button>'+
+    '<button class="dbtn dbtn-s" onclick="closeDrw()">Close</button></div>';
+  document.getElementById('dscrim').classList.add('on');
+}
+
+function openEquip(id){
+  var e=EQ[id]; if(!e) return;
+  var linked=RES.filter(function(r){return r.j.eqReq.some(function(req){return req.id===id;});});
+  var cs=RES.flatMap(function(r){return r.cs.filter(function(c){return c.type==='equipment'&&c.field===id;}).map(function(c){return {c:c,jid:r.j.id};});});
+  document.getElementById('dey').textContent=e.id+' \u00b7 ISA-95 EquipmentType \u00b7 '+e.scope;
+  document.getElementById('dname').textContent=e.name;
+  document.getElementById('dcls').textContent=e.cls+' \u00b7 '+e.model;
+  function fr(k,v){ return '<div class="dfr"><div class="dfk">'+k+'</div><div class="dfv">'+v+'</div></div>'; }
+  var chtml=cs.map(function(x){
+    return '<div class="aif '+x.c.sev+'"><div class="aift"><span class="aifta ta-'+x.c.sev+'">'+x.c.sev.toUpperCase()+'</span><span class="aifsrc">'+esc(x.jid)+'</span></div>'+
+      '<div class="aifm">'+esc(x.c.issue)+'</div>'+
+      '<div class="aitrace"><b>Rule:</b> '+esc(x.c.rule)+'<br><b>Required:</b> '+esc(x.c.req)+'<br><b>Available:</b> '+esc(x.c.avail)+'</div></div>';
+  }).join('');
+  var rec=e.status==='alert'?'<b>'+e.name+'</b> is offline. Raise calibration/maintenance work order immediately. Identify '+e.cls+' replacement for all linked jobs.'
+    :e.status==='warn'?'Maintenance window active. Ensure all jobs on '+e.id+' complete before '+t(e.maint&&e.maint.s||0)+'. Alert operators 30 min before window.'
+    :'Equipment ready. All CapabilityType records within valid bounds.';
+  document.getElementById('dbody').innerHTML=
+    '<div class="dsec"><div class="dstitle">EquipmentCapability Fields</div>'+
+      fr('EquipmentID','<span class="blue-v">'+e.id+'</span>')+
+      fr('EquipmentClassID','<span class="purple-v">'+e.cls+'</span>')+
+      fr('HierarchyScope','<span class="muted-v">'+e.scope+'</span>')+
+      fr('CapacityQuantity','<span class="blue-v">'+e.cap.toLocaleString()+' '+e.capU+'</span>')+
+      fr('OEE','<span class="'+(e.oee>80?'ok-v':e.oee>60?'warn-v':'alert-v')+'">'+e.oee+'%</span>')+
+      fr('Status','<span class="'+(e.status==='ok'?'ok-v':e.status==='warn'?'warn-v':'alert-v')+'">'+(e.status==='ok'?'READY':e.status==='warn'?'WARNING':'BLOCKED')+'</span>')+
+      (e.calDue?fr('Calibration','<span class="alert-v">'+esc(e.calDue)+'</span>'):'')+
+      (e.maint?fr('Maint window','<span class="warn-v">'+t(e.maint.s)+' &ndash; '+t(e.maint.e)+' &middot; '+esc(e.maint.lbl)+'</span>'):'')+
+    '</div>'+
+    (cs.length?'<div class="dsec"><div class="dstitle">Constraint Engine Findings</div>'+chtml+'</div>':'')+
+    '<div class="dsec"><div class="dstitle">Linked Jobs</div>'+
+      (linked.length?linked.map(function(r){return '<div class="dfr"><div class="dfk">'+r.j.id+'</div><div class="dfv '+(r.st==='ok'?'ok-v':r.st==='warn'?'warn-v':'alert-v')+'">'+esc(r.j.name)+'</div></div>';}).join(''):'<div style="color:var(--ink-m);font-size:11px">None.</div>')+
+    '</div>'+
+    '<div class="dsec"><div class="dstitle">AI Recommendation</div><div class="aibox"><span class="lbl">&#9670; AI &middot; Equipment Engine</span>'+rec+'</div></div>'+
+    '<div class="dacts"><button class="dbtn dbtn-p" onclick="toast(\'&#9881;\',\'Work order raised\',\'Maintenance WO for '+esc(e.name)+' created.\');closeDrw()">Raise Work Order</button>'+
+    '<button class="dbtn dbtn-s" onclick="closeDrw()">Close</button></div>';
+  document.getElementById('dscrim').classList.add('on');
+}
+
+function openPerson(id){
+  var p=PE[id]; if(!p) return;
+  var linked=RES.filter(function(r){return r.j.pReq.some(function(req){return req.id===id;});});
+  var cs=RES.flatMap(function(r){return r.cs.filter(function(c){return c.type==='personnel'&&c.field===id;}).map(function(c){return {c:c,r:r};});});
+  var st=p.availSt==='alert'?'alert':p.certSt==='alert'?'alert':p.certSt==='warn'?'warn':'ok';
+  document.getElementById('dey').textContent=p.id+' \u00b7 ISA-95 PersonType \u00b7 '+p.scope;
+  document.getElementById('dname').textContent=p.name;
+  document.getElementById('dcls').textContent=p.cls+' \u00b7 Shift '+p.shift;
+  function fr(k,v){ return '<div class="dfr"><div class="dfk">'+k+'</div><div class="dfv">'+v+'</div></div>'; }
+  var chtml=cs.map(function(x){
+    var bkSug=x.r.sg.filter(function(s){return s.includes('Replace')||s.includes('Assign')||s.includes('Escalate');}).slice(0,1);
+    return '<div class="aif '+x.c.sev+'"><div class="aift"><span class="aifta ta-'+x.c.sev+'">'+x.c.sev.toUpperCase()+'</span><span class="aifsrc">'+esc(x.r.j.id)+'</span></div>'+
+      '<div class="aifm">'+esc(x.c.issue)+'</div>'+
+      '<div class="aitrace"><b>Rule:</b> '+esc(x.c.rule)+'</div>'+
+      (bkSug.length?'<div class="sugbox" style="margin-top:5px"><span class="lbl">&#9670; AI Backup</span>'+esc(bkSug[0])+'</div>':'')+
+    '</div>';
+  }).join('');
+  document.getElementById('dbody').innerHTML=
+    '<div class="dsec"><div class="dstitle">PersonnelCapability Fields</div>'+
+      fr('PersonID','<span class="blue-v">'+p.id+'</span>')+
+      fr('PersonnelClassID','<span class="purple-v">'+esc(p.cls)+'</span>')+
+      fr('HierarchyScope','<span class="muted-v">'+p.scope+'</span>')+
+      fr('Qualification','<span class="purple-v">'+esc(p.qual)+'</span>')+
+      fr('Cert status','<span class="'+(p.certSt==='ok'?'ok-v':p.certSt==='warn'?'warn-v':'alert-v')+'">'+esc(p.certEx)+'</span>')+
+      fr('Availability','<span class="'+(p.availSt==='ok'?'ok-v':'alert-v')+'">'+esc(p.unavail||'Available - Shift '+p.shift)+'</span>')+
+      (p.supervised?fr('Restriction','<span class="warn-v">Supervised tasks only</span>'):'')+
+      fr('Overall status','<span class="'+(st==='ok'?'ok-v':st==='warn'?'warn-v':'alert-v')+'">'+(st==='ok'?'Fully qualified':st==='warn'?'Warning':'Non-compliant - cannot execute GMP tasks')+'</span>')+
+    '</div>'+
+    (cs.length?'<div class="dsec"><div class="dstitle">Constraint Engine Findings</div>'+chtml+'</div>':'')+
+    '<div class="dsec"><div class="dstitle">Assigned Jobs</div>'+
+      (linked.length?linked.map(function(r){return '<div class="dfr"><div class="dfk">'+r.j.id+'</div><div class="dfv '+(r.st==='ok'?'ok-v':r.st==='warn'?'warn-v':'alert-v')+'">'+esc(r.j.name)+'</div></div>';}).join(''):'<div style="color:var(--ink-m);font-size:11px">None.</div>')+
+    '</div>'+
+    '<div class="dacts"><button class="dbtn dbtn-p" onclick="toast(\'&#128100;\',\'Reassigned\',\'Tasks for '+esc(p.name)+' transferred to backup.\');closeDrw()">Reassign Tasks</button>'+
+    '<button class="dbtn dbtn-s" onclick="closeDrw()">Close</button></div>';
+  document.getElementById('dscrim').classList.add('on');
+}
+
+function openMat(id){
+  var m=MA[id]; if(!m) return;
+  var av=avail(m);
+  var demands=RES.flatMap(function(r){return r.j.mReq.filter(function(req){return req.id===id;}).map(function(req){return {jid:r.j.id,req:req};});});
+  var totalNeed=demands.reduce(function(a,d){return a+d.req.qty;},0);
+  var cs=RES.flatMap(function(r){return r.cs.filter(function(c){return c.type==='material'&&c.field===id;}).map(function(c,i){return {c:c,sg:r.sg[i]};});});
+  document.getElementById('dey').textContent=m.id+' \u00b7 ISA-95 MaterialLot';
+  document.getElementById('dname').textContent=m.name;
+  document.getElementById('dcls').textContent=m.cls+' \u00b7 '+m.defId;
+  function fr(k,v){ return '<div class="dfr"><div class="dfk">'+k+'</div><div class="dfv">'+v+'</div></div>'; }
+  var dRows=demands.map(function(d){
+    var ok=m.lotSt==='Released'&&av>=d.req.qty;
+    return '<tr><td class="fid">'+d.jid+'</td><td style="font-size:8.5px;color:var(--ink-m)">'+d.req.ph+'</td>'+
+      '<td style="font-family:var(--mono);font-size:9px;color:var(--ink-s)">'+d.req.qty+' '+d.req.unit+'</td>'+
+      '<td style="font-family:var(--mono);font-size:9px;color:'+(av>=d.req.qty&&m.lotSt==='Released'?'var(--green)':'var(--red)')+'">'+av+' '+m.unit+(m.lotSt!=='Released'?' ('+m.lotSt+')':'')+'</td>'+
+      '<td><span class="vd '+(ok?'vok':'vfail')+'">'+(ok?'OK':'FAIL')+'</span></td></tr>';
+  }).join('');
+  var rec=m.lotSt==='Quarantine'?'Lot on Quarantine - <b>all '+demands.length+' linked job'+(demands.length!==1?'s':'')+' blocked.</b> Escalate QA release or source alternate lot.'
+    :m.lotSt==='Hold'?'Lot on Hold pending '+esc(m.sup)+' CoA. Expedite documentation or source alternate.'
+    :av<totalNeed?'Available quantity ('+av+' '+m.unit+') is below total demand ('+totalNeed+' '+m.unit+'). Raise PO for '+(totalNeed-av+20)+' '+m.unit+' and reprioritise jobs.'
+    :'Lot released and quantity sufficient. No action required.';
+  document.getElementById('dbody').innerHTML=
+    '<div class="dsec"><div class="dstitle">MaterialLot Fields</div>'+
+      fr('MaterialLotID','<span class="blue-v">'+m.id+'</span>')+
+      fr('MaterialDefinitionID','<span class="purple-v">'+m.defId+'</span>')+
+      fr('LotStatus','<span class="'+(m.lotSt==='Released'?'ok-v':m.lotSt==='Quarantine'?'alert-v':'warn-v')+'">'+m.lotSt+'</span>')+
+      fr('Total stock','<span class="blue-v">'+m.total+' '+m.unit+'</span>')+
+      fr('Allocated elsewhere','<span class="'+(m.alloc>0?'warn-v':'muted-v')+'">'+m.alloc+' '+m.unit+'</span>')+
+      fr('Available qty','<span class="'+(av>=totalNeed&&m.lotSt==='Released'?'ok-v':'alert-v')+'">'+av+' '+m.unit+'</span>')+
+      fr('Total demand','<span class="muted-v">'+totalNeed+' '+m.unit+'</span>')+
+      fr('Net balance','<span class="'+(av-totalNeed>=0&&m.lotSt==='Released'?'ok-v':'alert-v')+'">'+(av-totalNeed>=0?'+':''+(av-totalNeed))+' '+m.unit+'</span>')+
+      fr('ExpirationDate','<span class="muted-v">'+m.expiry+'</span>')+
+      fr('Location','<span class="muted-v">'+esc(m.loc)+'</span>')+
+      fr('Supplier','<span class="muted-v">'+esc(m.sup)+'</span>')+
+    '</div>'+
+    (demands.length?'<div class="dsec"><div class="dstitle">Demand by Job</div><table class="ctbl"><tr><th>Job</th><th>Phase</th><th>Required</th><th>Available</th><th></th></tr>'+dRows+'</table></div>':'')+
+    '<div class="dsec"><div class="dstitle">AI Recommendation</div><div class="aibox"><span class="lbl">&#9670; AI &middot; Material Engine</span>'+rec+'</div></div>'+
+    '<div class="dacts"><button class="dbtn dbtn-p" onclick="toast(\'&#128230;\',\'Action raised\',\''+esc(m.name)+' lot resolution initiated.\');closeDrw()">Resolve Lot</button>'+
+    '<button class="dbtn dbtn-s" onclick="closeDrw()">Close</button></div>';
+  document.getElementById('dscrim').classList.add('on');
+}
+
+function closeDrw(e){ if(!e||e.target.id==='dscrim') document.getElementById('dscrim').classList.remove('on'); }
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+var tTimer;
+function toast(icon,title,msg){
+  document.getElementById('ticon').innerHTML=icon;
+  document.getElementById('ttitle').textContent=title;
+  document.getElementById('tmsg').textContent=msg;
+  var el=document.getElementById('toast');
+  el.classList.add('on');
+  clearTimeout(tTimer);
+  tTimer=setTimeout(function(){el.classList.remove('on');},4200);
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+renderJobs();
+renderGantt();
+renderSchedAI();
+renderEquip();
+renderPersonnel();
+renderResAI();
+renderMat();
+</script>
+</body>
+</html>

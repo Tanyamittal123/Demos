@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shift Management — ISA-95 Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0C1219;--bg2:#0A0F16;--card:#111D2E;--card2:#162030;
+  --line:#1E3A5F;--line2:#243850;
+  --blue:#4FC3F7;--blue-dim:rgba(79,195,247,0.10);
+  --amber:#FFA726;--amber-dim:rgba(255,167,38,0.10);
+  --red:#EF5350;--red-dim:rgba(239,83,80,0.10);
+  --green:#66BB6A;--green-dim:rgba(102,187,106,0.10);
+  --purple:#B39DDB;--purple-dim:rgba(179,157,219,0.12);
+  --teal:#4DB6AC;--teal-dim:rgba(77,182,172,0.12);
+  --ink:#E8F0FE;--ink-s:#90A4C0;--ink-m:#4A6280;
+  --mono:'JetBrains Mono',monospace;--disp:'DM Serif Display',serif;--body:'DM Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);min-height:100vh;font-size:13px;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px;}
+
+header{background:var(--bg2);border-bottom:1px solid var(--line);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.hdr-left{display:flex;align-items:center;gap:14px;}
+.hdr-back{font-family:var(--mono);font-size:10px;color:var(--ink-m);letter-spacing:1px;text-decoration:none;border:1px solid var(--line);padding:4px 10px;border-radius:4px;transition:all .15s;}
+.hdr-back:hover{color:var(--teal);border-color:var(--teal);}
+.hdr-schema{font-family:var(--mono);font-size:10px;color:var(--ink-m);letter-spacing:0.8px;}
+.hdr-schema b{color:var(--teal);}
+.hdr-title{font-family:var(--disp);font-size:22px;}
+.hdr-title span{color:var(--teal);}
+.hdr-right{display:flex;align-items:center;gap:18px;}
+.hdr-stat{text-align:center;}
+.hdr-stat-val{font-family:var(--mono);font-size:17px;font-weight:600;}
+.hdr-stat-lbl{font-size:9.5px;color:var(--ink-m);letter-spacing:0.8px;text-transform:uppercase;margin-top:1px;}
+.live-pill{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:1.2px;color:var(--teal);border:1px solid rgba(77,182,172,0.3);padding:5px 12px;border-radius:14px;}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);animation:blink 1.8s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+.shift-bar{background:var(--bg2);border-bottom:1px solid var(--line);padding:0 24px;height:48px;display:flex;align-items:center;gap:0;position:sticky;top:56px;z-index:40;overflow-x:auto;}
+.shift-tab{height:100%;padding:0 16px;display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;letter-spacing:0.4px;color:var(--ink-m);border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;border-top:none;border-left:none;border-right:none;background:transparent;white-space:nowrap;flex-shrink:0;}
+.shift-tab:hover{color:var(--ink);}
+.shift-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+.shift-tab .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.shift-badge{font-size:8.5px;padding:1px 5px;border-radius:8px;font-weight:600;}
+.shift-time{font-size:9px;color:var(--ink-m);}
+.shift-bar-sep{width:1px;height:24px;background:var(--line);margin:0 2px;flex-shrink:0;}
+
+.layout{display:grid;grid-template-columns:280px 1fr 310px;height:calc(100vh - 104px);overflow:hidden;}
+.col{overflow-y:auto;border-right:1px solid var(--line);padding:18px 16px;}
+.col:last-child{border-right:none;}
+.col-title{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-m);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.col-title::after{content:'';flex:1;height:1px;background:var(--line);}
+
+/* LEFT */
+.wcd-box{background:var(--card2);border:1px solid var(--line2);border-radius:9px;padding:12px 14px;margin-bottom:14px;}
+.wcd-title{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--teal);margin-bottom:8px;}
+.wcd-field{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid rgba(30,58,95,0.4);}
+.wcd-field:last-child{border-bottom:none;}
+.wcd-key{color:var(--ink-m);}
+.wcd-val{font-family:var(--mono);font-size:10.5px;color:var(--ink-s);}
+.timeline-day{margin-bottom:16px;}
+.timeline-day-label{font-family:var(--mono);font-size:9px;color:var(--ink-m);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line);}
+.shift-block{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:all .18s;border-left:3px solid;}
+.shift-block:hover{transform:translateX(2px);}
+.shift-block.selected{background:var(--card2);}
+.shift-block.shift-a{border-left-color:var(--teal);}
+.shift-block.shift-b{border-left-color:var(--purple);}
+.shift-block.shift-n{border-left-color:var(--amber);}
+.shift-block-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.shift-block-name{font-family:var(--mono);font-size:10.5px;font-weight:600;}
+.shift-block-state{font-family:var(--mono);font-size:8.5px;padding:2px 7px;border-radius:8px;font-weight:600;text-transform:uppercase;}
+.state-complete{background:var(--green-dim);color:var(--green);}
+.state-active{background:var(--teal-dim);color:var(--teal);}
+.state-upcoming{background:var(--blue-dim);color:var(--blue);}
+.state-gap{background:var(--red-dim);color:var(--red);}
+.shift-block-time{font-family:var(--mono);font-size:9px;color:var(--ink-m);margin-bottom:5px;}
+.shift-block-people{display:flex;gap:4px;flex-wrap:wrap;}
+.person-chip{font-size:9.5px;background:var(--card2);border:1px solid var(--line);border-radius:4px;padding:2px 6px;color:var(--ink-s);}
+.person-chip.flagged{border-color:rgba(255,167,38,0.4);color:var(--amber);background:var(--amber-dim);}
+.person-chip.alert{border-color:rgba(239,83,80,0.4);color:var(--red);background:var(--red-dim);}
+.person-chip.inactive{border-color:var(--line2);color:var(--ink-m);opacity:0.6;}
+
+/* CENTRE */
+.shift-header-card{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:16px 18px;margin-bottom:14px;}
+.shc-name{font-family:var(--disp);font-size:20px;margin-bottom:3px;}
+.shc-sub{font-family:var(--mono);font-size:9.5px;color:var(--ink-m);margin-bottom:2px;line-height:1.5;}
+.shc-meta{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:12px;}
+.shc-meta-cell{background:var(--card2);border:1px solid var(--line);border-radius:7px;padding:8px 10px;text-align:center;}
+.shc-meta-val{font-family:var(--mono);font-size:15px;font-weight:600;margin-bottom:2px;}
+.shc-meta-lbl{font-size:9px;color:var(--ink-m);}
+
+.roster-table{width:100%;border-collapse:collapse;margin-bottom:14px;}
+.roster-table th{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-m);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);}
+.roster-table td{padding:8px 8px;border-bottom:1px solid rgba(30,58,95,0.35);font-size:12px;vertical-align:middle;}
+.roster-table tr.clickable:hover td{background:rgba(77,182,172,0.04);cursor:pointer;}
+.rt-id{font-family:var(--mono);font-size:9.5px;color:var(--teal);}
+.rt-name{font-weight:500;}
+.rt-class{font-size:10.5px;color:var(--purple);}
+.rt-status{font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:8px;display:inline-block;}
+.rt-ok{background:var(--green-dim);color:var(--green);}
+.rt-warn{background:var(--amber-dim);color:var(--amber);}
+.rt-alert{background:var(--red-dim);color:var(--red);}
+.rt-na{background:rgba(74,98,128,0.15);color:var(--ink-m);}
+.rt-sub{background:var(--blue-dim);color:var(--blue);}
+.rt-present{background:var(--green-dim);color:var(--green);}
+.rt-absent{background:var(--red-dim);color:var(--red);}
+
+.seg-grid{display:grid;gap:8px;margin-bottom:14px;}
+.seg-card{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:12px 14px;}
+.seg-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.seg-id{font-family:var(--mono);font-size:9px;color:var(--teal);}
+.seg-name{font-size:12.5px;font-weight:600;}
+.seg-coverage-pill{font-family:var(--mono);font-size:9px;padding:3px 9px;border-radius:10px;}
+.coverage-ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(102,187,106,0.3);}
+.coverage-warn{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,167,38,0.3);}
+.coverage-gap{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,83,80,0.3);}
+.seg-reqs{display:flex;flex-direction:column;gap:4px;}
+.seg-req{font-size:10.5px;display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--card2);border:1px solid var(--line);border-radius:5px;}
+.seg-req-icon{font-size:10px;flex-shrink:0;}
+
+.handover-card{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px 16px;margin-bottom:12px;}
+.hov-title{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-m);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.hov-arrow{font-size:11px;color:var(--teal);letter-spacing:2px;}
+.hov-row{display:flex;gap:10px;margin-bottom:8px;}
+.hov-col{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:7px;padding:8px 10px;}
+.hov-col-label{font-family:var(--mono);font-size:8.5px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-m);margin-bottom:5px;}
+.hov-person{display:flex;align-items:center;gap:7px;}
+.hov-avatar{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8.5px;font-weight:700;flex-shrink:0;}
+.hov-person-name{font-size:11.5px;font-weight:500;}
+.hov-person-role{font-size:9.5px;color:var(--purple);}
+.hov-note{font-size:11px;color:var(--ink-s);line-height:1.5;padding:5px 8px;background:var(--card);border:1px solid var(--line);border-radius:5px;margin-bottom:4px;border-left:2px solid var(--amber);}
+.hov-note.ok{border-left-color:var(--green);}
+.hov-note.alert{border-left-color:var(--red);}
+.hov-note.info{border-left-color:var(--blue);}
+
+/* RIGHT */
+.ai-summary{background:var(--teal-dim);border:1px solid rgba(77,182,172,0.25);border-radius:9px;padding:13px;margin-bottom:14px;}
+.ai-summary-head{font-family:var(--mono);font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.ai-summary-text{font-size:12px;color:var(--ink-s);line-height:1.6;}
+.ai-summary-text b{color:var(--ink);}
+.ai-section{margin-bottom:18px;}
+.ai-section-title{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1.3px;color:var(--ink-m);margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+.ai-section-title::after{content:'';flex:1;height:1px;background:var(--line);}
+.ai-flag{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:8px;border-left:3px solid;transition:all .2s;}
+.ai-flag:hover{transform:translateX(2px);}
+.ai-flag.alert{border-left-color:var(--red);}
+.ai-flag.warn{border-left-color:var(--amber);}
+.ai-flag.info{border-left-color:var(--blue);}
+.ai-flag.ok{border-left-color:var(--green);opacity:0.75;}
+.ai-flag-top{display:flex;align-items:center;gap:7px;margin-bottom:5px;}
+.ai-flag-tag{font-family:var(--mono);font-size:8.5px;font-weight:600;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:0.5px;}
+.tag-alert{background:var(--red-dim);color:var(--red);}
+.tag-warn{background:var(--amber-dim);color:var(--amber);}
+.tag-info{background:var(--blue-dim);color:var(--blue);}
+.tag-ok{background:var(--green-dim);color:var(--green);}
+.ai-flag-who{font-family:var(--mono);font-size:9.5px;color:var(--ink-s);}
+.ai-flag-msg{font-size:11.5px;color:var(--ink-s);line-height:1.5;}
+.ai-flag-msg b{color:var(--ink);}
+.ai-flag-action{margin-top:6px;font-size:10.5px;color:var(--teal);display:flex;align-items:center;gap:4px;cursor:pointer;}
+.risk-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.risk-label{font-size:11px;color:var(--ink-s);min-width:110px;}
+.risk-bar{flex:1;height:5px;background:var(--card2);border-radius:3px;overflow:hidden;}
+.risk-fill{height:100%;border-radius:3px;transition:width .6s;}
+.risk-pct{font-family:var(--mono);font-size:10px;color:var(--ink-m);min-width:28px;text-align:right;}
+.isa-note{background:var(--card2);border:1px solid var(--line);border-radius:7px;padding:10px 12px;font-size:10.5px;color:var(--ink-m);line-height:1.6;}
+.isa-note b{color:var(--ink-s);}
+
+/* DRAWER */
+.drawer-scrim{position:fixed;inset:0;background:rgba(6,10,18,0.7);backdrop-filter:blur(4px);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;}
+.drawer-scrim.open{opacity:1;pointer-events:all;}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:440px;background:var(--card);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);z-index:101;overflow-y:auto;}
+.drawer-scrim.open .drawer{transform:translateX(0);}
+.drawer-head{padding:20px 22px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);z-index:2;display:flex;justify-content:space-between;align-items:flex-start;}
+.drawer-close{width:28px;height:28px;border-radius:6px;background:var(--card2);border:1px solid var(--line);color:var(--ink-s);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.drawer-close:hover{border-color:var(--teal);color:var(--ink);}
+.drawer-body{padding:18px 22px 28px;}
+.d-eyebrow{font-family:var(--mono);font-size:9.5px;color:var(--ink-m);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:4px;}
+.d-name{font-size:20px;font-weight:700;margin-bottom:2px;}
+.d-sub{font-size:12px;color:var(--purple);}
+.d-sec{margin-bottom:18px;}
+.d-sec-title{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-m);margin-bottom:9px;display:flex;align-items:center;gap:6px;}
+.d-sec-title::after{content:'';flex:1;height:1px;background:var(--line);}
+.d-field-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(30,58,95,0.4);font-size:12px;}
+.d-field-row:last-child{border-bottom:none;}
+.d-field-key{color:var(--ink-m);font-size:11px;}
+.d-field-val{font-family:var(--mono);font-size:11px;font-weight:500;}
+.ai-rec-box{background:var(--teal-dim);border:1px solid rgba(77,182,172,0.25);border-radius:8px;padding:12px 14px;margin-top:4px;font-size:11.5px;color:var(--ink-s);line-height:1.6;}
+.ai-rec-box .label{font-family:var(--mono);font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;}
+.ai-rec-box b{color:var(--ink);}
+.d-actions{display:flex;gap:8px;margin-top:16px;}
+.d-btn{padding:8px 16px;border-radius:7px;font-size:12px;font-weight:500;border:none;cursor:pointer;transition:all .15s;font-family:var(--body);}
+.d-btn-primary{background:var(--teal);color:#051824;font-weight:600;}
+.d-btn-primary:hover{background:#80CBC4;}
+.d-btn-secondary{background:var(--card2);color:var(--ink-s);border:1px solid var(--line);}
+.d-btn-secondary:hover{border-color:var(--teal);color:var(--ink);}
+
+.toast{position:fixed;bottom:22px;right:22px;max-width:320px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:12px 16px;display:flex;gap:10px;transform:translateY(14px);opacity:0;transition:all .3s;z-index:200;pointer-events:none;font-size:11.5px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast b{display:block;font-size:12.5px;margin-bottom:2px;color:var(--ink);}
+.toast span{color:var(--ink-s);line-height:1.5;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <a class="hdr-back" href="index.html">← Suite</a>
+    <div class="hdr-title">Shift <span>Management</span></div>
+    <div class="hdr-schema">ISA-95 · <b>WorkCalendar · WorkSchedule · WorkPerformance · ProcessSegment</b></div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-stat"><div class="hdr-stat-val" id="hdr-shifts" style="color:var(--teal)">9</div><div class="hdr-stat-lbl">Shifts / 3 Days</div></div>
+    <div class="hdr-stat"><div class="hdr-stat-val" id="hdr-coverage" style="color:var(--green)">0</div><div class="hdr-stat-lbl">Fully Covered</div></div>
+    <div class="hdr-stat"><div class="hdr-stat-val" id="hdr-gaps" style="color:var(--red)">0</div><div class="hdr-stat-lbl">Coverage Gaps</div></div>
+    <div class="live-pill"><div class="live-dot"></div>Live</div>
+  </div>
+</header>
+
+<div class="shift-bar" id="shift-bar"></div>
+
+<div class="layout">
+  <div class="col" id="col-calendar">
+    <div class="col-title">WorkCalendar · 3-Day View</div>
+    <div class="wcd-box">
+      <div class="wcd-title">WorkCalendarDefinition · SolidDosage-3Shift</div>
+      <div class="wcd-field"><span class="wcd-key">ID</span><span class="wcd-val">WCD-SD-001</span></div>
+      <div class="wcd-field"><span class="wcd-key">RecurrenceTime</span><span class="wcd-val">DAILY</span></div>
+      <div class="wcd-field"><span class="wcd-key">DurationRule</span><span class="wcd-val">8H ROTATING</span></div>
+      <div class="wcd-field"><span class="wcd-key">Shift A (Morning)</span><span class="wcd-val">06:00–14:00</span></div>
+      <div class="wcd-field"><span class="wcd-key">Shift B (Afternoon)</span><span class="wcd-val">14:00–22:00</span></div>
+      <div class="wcd-field"><span class="wcd-key">Night Shift</span><span class="wcd-val">22:00–06:00</span></div>
+      <div class="wcd-field"><span class="wcd-key">Min headcount/shift</span><span class="wcd-val" style="color:var(--amber)">4–6 operators</span></div>
+      <div class="wcd-field"><span class="wcd-key">Rest rule</span><span class="wcd-val" style="color:var(--amber)">No consecutive shifts</span></div>
+    </div>
+    <div id="calendar-timeline"></div>
+  </div>
+
+  <div class="col" id="col-detail">
+    <div class="col-title" id="detail-col-title">WorkSchedule · Shift Detail</div>
+    <div id="shift-detail-content"></div>
+  </div>
+
+  <div class="col" id="col-ai">
+    <div class="col-title">AI Interventions</div>
+    <div class="ai-summary" id="ai-summary">
+      <div class="ai-summary-head">◆ AI · Shift Intelligence</div>
+      <div class="ai-summary-text" id="ai-summary-text">Analysing shift schedule…</div>
+    </div>
+    <div class="ai-section">
+      <div class="ai-section-title">Risk Indicators</div>
+      <div id="risk-gauges"></div>
+    </div>
+    <div class="ai-section">
+      <div class="ai-section-title">Active Flags</div>
+      <div id="ai-flags"></div>
+    </div>
+    <div class="ai-section">
+      <div class="ai-section-title">ISA-95 Schema Note</div>
+      <div class="isa-note">
+        <b>ProcessSegment.PersonnelSegmentSpecification</b> defines minimum qualified headcount per step. This shift requires <b>2× BLEND-OPS + 1× SR-BLEND-OPS + 2× GRAN-OPS + 1× QA-REVIEWER + 1× SHIFT-LEAD = 7 operators</b> minimum. <b>WorkPerformance.JobResponse.PersonnelActual</b> records who attended vs the <b>PersonnelRequirement</b> in the plan.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="drawer-scrim" id="drawer-scrim" onclick="closeDrawer(event)">
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div>
+        <div class="d-eyebrow" id="d-eyebrow"></div>
+        <div class="d-name" id="d-name"></div>
+        <div class="d-sub" id="d-sub"></div>
+      </div>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body" id="d-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div style="font-size:16px;flex-shrink:0" id="toast-icon">◆</div>
+  <div><b id="toast-title"></b><span id="toast-msg"></span></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   PERSONNEL — B2MML-Personnel.xsd PersonType
+   certStatus: ok | warn | alert | inactive
+   ═══════════════════════════════════════════════════════ */
+const PERSONS = {
+  'OP-114': { name:'Rajan Mehta',     classId:'BLEND-OPS',    classLabel:'Blending Op',     avatar:'RM', bg:'#2A3520', certStatus:'warn',     note:'BlendingCertification expires in 6 days' },
+  'OP-507': { name:'Kavitha Reddy',   classId:'BLEND-OPS',    classLabel:'Blending Op',     avatar:'KR', bg:'#2A2A1A', certStatus:'inactive',  note:'On leave — EffectiveEndDate passed' },
+  'OP-612': { name:'Meera Iyer',      classId:'BLEND-OPS',    classLabel:'Blending Op',     avatar:'MI', bg:'#1C2A1A', certStatus:'ok',        note:'All qualifications current' },
+  'OP-203': { name:'Priya Krishnan',  classId:'SR-BLEND-OPS', classLabel:'Sr Blending Op',  avatar:'PK', bg:'#1A2A4A', certStatus:'ok',        note:'Senior — can verify junior blending ops' },
+  'OP-101': { name:'Ananya Sharma',   classId:'GRAN-OPS',     classLabel:'Granulation Op',  avatar:'AS', bg:'#1A3A5C', certStatus:'ok',        note:'All qualifications current' },
+  'OP-422': { name:'Arjun Patel',     classId:'GRAN-OPS',     classLabel:'Granulation Op',  avatar:'AP', bg:'#1A3030', certStatus:'warn',      note:'GranulationCertification IN-PROGRESS (72%)' },
+  'OP-815': { name:'Neha Singh',      classId:'GRAN-OPS',     classLabel:'Granulation Op',  avatar:'NS', bg:'#1A2A1A', certStatus:'ok',        note:'All qualifications current' },
+  'OP-318': { name:'Vikram Tiwari',   classId:'QA-REVIEWER',  classLabel:'QA Reviewer',     avatar:'VT', bg:'#2A1A3C', certStatus:'alert',     note:'QA-Certification EXPIRED 12 days ago' },
+  'QA-071': { name:'Suresh Bhat',     classId:'QA-REVIEWER',  classLabel:'QA Reviewer',     avatar:'SB', bg:'#1A2838', certStatus:'ok',        note:'All qualifications current' },
+  'SL-002': { name:'Deepa Nair',      classId:'SHIFT-LEAD',   classLabel:'Shift Leader',    avatar:'DN', bg:'#2A1525', certStatus:'ok',        note:'All qualifications current' },
+  'SL-003': { name:'Rohan Kulkarni',  classId:'SHIFT-LEAD',   classLabel:'Shift Leader',    avatar:'RK', bg:'#2C1A1A', certStatus:'ok',        note:'All qualifications current' },
+};
+
+/* ═══════════════════════════════════════════════════════
+   PROCESS SEGMENTS — B2MML-ProcessSegment.xsd
+   PersonnelSegmentSpecification minimum per shift:
+   1× any blending-capable (BLEND-OPS or SR-BLEND-OPS)
+   1× GRAN-OPS
+   1× QA-REVIEWER
+   1× SHIFT-LEAD
+   Total minimum headcount: 4 (comfortable: 5–6)
+   ═══════════════════════════════════════════════════════ */
+const PROCESS_SEGMENTS = [
+  {
+    id:'SEG-BLD-01', name:'Blending', operationsType:'Production',
+    requirements:[{ classIds:['BLEND-OPS','SR-BLEND-OPS'], qty:1, label:'1× Blending-capable Op' }]
+  },
+  {
+    id:'SEG-GRAN-01', name:'Granulation', operationsType:'Production',
+    requirements:[{ classIds:['GRAN-OPS'], qty:1, label:'1× Granulation Op' }]
+  },
+  {
+    id:'SEG-QA-01', name:'In-Process QA', operationsType:'Quality',
+    requirements:[{ classIds:['QA-REVIEWER'], qty:1, label:'1× QA Reviewer' }]
+  },
+  {
+    id:'SEG-SL-01', name:'Shift Leadership', operationsType:'Production',
+    requirements:[{ classIds:['SHIFT-LEAD'], qty:1, label:'1× Shift Leader' }]
+  },
+];
+
+/* ═══════════════════════════════════════════════════════
+   SHIFT SCHEDULE
+   Pool summary:
+     BLEND-OPS:    OP-612(ok), OP-114(warn/expiring), OP-507(inactive)
+     SR-BLEND-OPS: OP-203(ok) — counts as blending-capable
+     GRAN-OPS:     OP-101(ok), OP-815(ok), OP-422(warn/supervised)
+     QA-REVIEWER:  QA-071(ok), OP-318(alert/expired)
+     SHIFT-LEAD:   SL-002(ok), SL-003(ok)
+
+   A-team (SL-002): mon-a, mon-n, tue-b, wed-a, wed-n
+   B-team (SL-003): mon-b, tue-a, tue-n, wed-b
+   QA rotation: QA-071 on A-team shifts; OP-318 planned for B-team (expired → gaps)
+
+   GAPS (exactly 3):
+   1. mon-b (Complete): OP-318 no-show → QA gap recorded
+   2. tue-a (Active):   OP-318 no-show → QA gap live now
+   3. tue-b (Upcoming): OP-507 inactive → Blending gap, AI recommends OP-612
+   ═══════════════════════════════════════════════════════ */
+const SHIFTS = [
+  {
+    key:'mon-a', id:'WCE-MON-A', day:'Mon 17 Mar', dayIdx:0,
+    name:'Shift A', type:'shift-a', scheduleState:'Complete',
+    wceId:'WCE-MON-A', scheduleId:'WS-MON-A',
+    startDateTime:'2025-03-17T06:00:00', finishDateTime:'2025-03-17T14:00:00',
+    leaderId:'SL-002',
+    planned:['SL-002','OP-203','OP-101','QA-071','OP-114','OP-422'],
+    actual: ['SL-002','OP-203','OP-101','QA-071','OP-114','OP-422'],
+    actualStart:'06:03', actualEnd:'14:01',
+    restViolations:[],
+    aiRecommendation: null,
+    notes:[
+      { type:'ok',   text:'All 6 planned operators present. Full segment coverage achieved.' },
+      { type:'warn', text:'OP-114 Rajan Mehta: BlendingCertification expires in 6 days. Flagged for scheduling team.' },
+      { type:'warn', text:'OP-422 Arjun Patel: GranulationCertification IN-PROGRESS (72%). Working supervised under OP-101.' },
+      { type:'ok',   text:'Batch BL-2025-044 complete. Yield: 98.2%. No deviations.' },
+    ]
+  },
+  {
+    key:'mon-b', id:'WCE-MON-B', day:'Mon 17 Mar', dayIdx:0,
+    name:'Shift B', type:'shift-b', scheduleState:'Complete',
+    wceId:'WCE-MON-B', scheduleId:'WS-MON-B',
+    startDateTime:'2025-03-17T14:00:00', finishDateTime:'2025-03-17T22:00:00',
+    leaderId:'SL-003',
+    planned:['SL-003','OP-612','OP-815','OP-318'],
+    actual: ['SL-003','OP-612','OP-815'],
+    actualStart:'13:58', actualEnd:'22:05',
+    restViolations:[],
+    aiRecommendation: null,
+    notes:[
+      { type:'alert', text:'OP-318 absent. QA-Certification EXPIRED — should not have been re-scheduled. SEG-QA-01 uncovered for full shift. QA-071 agreed to stay 2h overtime as emergency cover. CAPA raised.' },
+      { type:'ok',    text:'OP-612 and OP-815 present. Blending and Granulation fully covered.' },
+      { type:'ok',    text:'Granulation batch GR-2025-031 completed. Yield: 97.1%.' },
+    ]
+  },
+  {
+    key:'mon-n', id:'WCE-MON-N', day:'Mon 17 Mar', dayIdx:0,
+    name:'Night', type:'shift-n', scheduleState:'Complete',
+    wceId:'WCE-MON-N', scheduleId:'WS-MON-N',
+    startDateTime:'2025-03-17T22:00:00', finishDateTime:'2025-03-18T06:00:00',
+    leaderId:'SL-002',
+    planned:['SL-002','OP-203','OP-101','QA-071','OP-422'],
+    actual: ['SL-002','OP-203','OP-101','QA-071','OP-422'],
+    actualStart:'21:57', actualEnd:'06:02',
+    restViolations:[],
+    aiRecommendation: null,
+    notes:[
+      { type:'ok',   text:'All 5 planned operators present. Full coverage.' },
+      { type:'ok',   text:'Maintenance window 01:00–03:00 completed without incident.' },
+      { type:'warn', text:'OP-422: continued supervised granulation tasks per SOP. No issues recorded.' },
+    ]
+  },
+  {
+    key:'tue-a', id:'WCE-TUE-A', day:'Tue 18 Mar ★ TODAY', dayIdx:1,
+    name:'Shift A', type:'shift-a', scheduleState:'Active',
+    wceId:'WCE-TUE-A', scheduleId:'WS-TUE-A',
+    startDateTime:'2025-03-18T06:00:00', finishDateTime:'2025-03-18T14:00:00',
+    leaderId:'SL-003',
+    planned:['SL-003','OP-612','OP-114','OP-815','OP-318'],
+    actual: ['SL-003','OP-612','OP-114','OP-815'],
+    actualStart:'06:01', actualEnd:null,
+    restViolations:[],
+    aiRecommendation: null,
+    notes:[
+      { type:'alert', text:'OP-318 no-show again. QA-Certification EXPIRED. SEG-QA-01 uncovered. QA-071 on mandatory rest — cannot call in. Escalated to QA Manager.' },
+      { type:'warn',  text:'OP-114: BlendingCertification expires in 6 days. Recertification booked for today 09:00.' },
+      { type:'info',  text:'Batch BL-2025-045 in progress. Estimated completion 12:00.' },
+    ]
+  },
+  {
+    key:'tue-b', id:'WCE-TUE-B', day:'Tue 18 Mar ★ TODAY', dayIdx:1,
+    name:'Shift B', type:'shift-b', scheduleState:'Upcoming',
+    wceId:'WCE-TUE-B', scheduleId:'WS-TUE-B',
+    startDateTime:'2025-03-18T14:00:00', finishDateTime:'2025-03-18T22:00:00',
+    leaderId:'SL-002',
+    planned:['SL-002','OP-101','QA-071','OP-507','OP-422'],
+    actual: [],
+    actualStart:null, actualEnd:null,
+    restViolations:[],
+    aiRecommendation: {
+      gap:'SEG-BLD-01 — Blending',
+      reason:'OP-507 (Kavitha Reddy) is INACTIVE (on leave). No blending-capable operator in the planned roster.',
+      suggestion:'Assign OP-612 (Meera Iyer, BLEND-OPS, certified). OP-612 is rested after Tue-A (B-team) and available.',
+      assignPerson:'OP-612',
+    },
+    notes:[
+      { type:'alert', text:'OP-507 Kavitha Reddy INACTIVE — EffectiveEndDate passed. Blending slot unfilled. SEG-BLD-01 will be uncovered unless replaced before 14:00.' },
+      { type:'ok',    text:'QA-071 back after rest. SEG-QA-01 covered.' },
+      { type:'ok',    text:'OP-101 back. Granulation covered.' },
+    ]
+  },
+  {
+    key:'tue-n', id:'WCE-TUE-N', day:'Tue 18 Mar ★ TODAY', dayIdx:1,
+    name:'Night', type:'shift-n', scheduleState:'Upcoming',
+    wceId:'WCE-TUE-N', scheduleId:'WS-TUE-N',
+    startDateTime:'2025-03-18T22:00:00', finishDateTime:'2025-03-19T06:00:00',
+    leaderId:'SL-003',
+    planned:['SL-003','OP-612','OP-815','QA-071','OP-203'],
+    actual: [],
+    actualStart:null, actualEnd:null,
+    restViolations:[],
+    aiRecommendation: null,
+    notes:[
+      { type:'ok',   text:'All planned operators are rested and certified. Full coverage expected.' },
+      { type:'ok',   text:'QA-071 rested after Tue-B gap. SEG-QA-01 covered.' },
+      { type:'warn', text:'OP-203 back after Mon-N rest gap. SR-BLEND supervision restored.' },
+    ]
+  },
+  {
+    key:'wed-a', id:'WCE-WED-A', day:'Wed 19 Mar', dayIdx:2,
+    name:'Shift A', type:'shift-a', scheduleState:'Upcoming',
+    wceId:'WCE-WED-A', scheduleId:'WS-WED-A',
+    startDateTime:'2025-03-19T06:00:00', finishDateTime:'2025-03-19T14:00:00',
+    leaderId:'SL-002',
+    planned:['SL-002','OP-203','OP-101','QA-071','OP-114'],
+    actual: [],
+    actualStart:null, actualEnd:null,
+    restViolations:[],
+    aiRecommendation: null,
+    notes:[
+      { type:'ok',   text:'Full coverage. All planned operators rested and qualified.' },
+      { type:'warn', text:'OP-114: Confirm BlendingCertification renewal completed before this shift or swap with OP-612.' },
+      { type:'ok',   text:'QA-071 present. OP-203 back. SEG-BLD-01 and SEG-QA-01 both covered.' },
+    ]
+  },
+  {
+    key:'wed-b', id:'WCE-WED-B', day:'Wed 19 Mar', dayIdx:2,
+    name:'Shift B', type:'shift-b', scheduleState:'Upcoming',
+    wceId:'WCE-WED-B', scheduleId:'WS-WED-B',
+    startDateTime:'2025-03-19T14:00:00', finishDateTime:'2025-03-19T22:00:00',
+    leaderId:'SL-003',
+    planned:['SL-003','OP-612','OP-815','QA-071','OP-422'],
+    actual: [],
+    actualStart:null, actualEnd:null,
+    restViolations:[],
+    aiRecommendation: null,
+    notes:[
+      { type:'ok',   text:'Full coverage. QA-071 included — B-team QA gap risk resolved for this shift.' },
+      { type:'ok',   text:'OP-612 back after rest. Blending covered.' },
+      { type:'warn', text:'OP-422 supervised granulation continues. OP-815 certified as primary GRAN-OPS.' },
+    ]
+  },
+  {
+    key:'wed-n', id:'WCE-WED-N', day:'Wed 19 Mar', dayIdx:2,
+    name:'Night', type:'shift-n', scheduleState:'Upcoming',
+    wceId:'WCE-WED-N', scheduleId:'WS-WED-N',
+    startDateTime:'2025-03-19T22:00:00', finishDateTime:'2025-03-20T06:00:00',
+    leaderId:'SL-002',
+    planned:['SL-002','OP-203','OP-101','QA-071','OP-422'],
+    actual: [],
+    actualStart:null, actualEnd:null,
+    restViolations:[],
+    aiRecommendation: null,
+    notes:[
+      { type:'ok',   text:'All planned operators rested and certified. Clean end-of-week night shift.' },
+      { type:'ok',   text:'Full segment coverage confirmed.' },
+    ]
+  },
+];
+
+let selectedShiftIdx = 3; // Default: Tue Shift A (Active)
+
+/* ─────────────────────────────────────────────
+   COVERAGE CHECK — reads PersonnelSegmentSpecification
+   against planned roster, respecting cert status
+   ───────────────────────────────────────────── */
+function checkCoverage(shift) {
+  const rosterIds = shift.scheduleState === 'Complete' ? shift.actual : shift.planned;
+  return PROCESS_SEGMENTS.map(seg => {
+    let detail = [];
+    let met = true;
+    seg.requirements.forEach(req => {
+      const certOk = rosterIds.filter(pid => {
+        const p = PERSONS[pid];
+        return p && req.classIds.includes(p.classId) && p.certStatus !== 'alert' && p.certStatus !== 'inactive';
+      }).length;
+      const withWarn = rosterIds.filter(pid => {
+        const p = PERSONS[pid];
+        return p && req.classIds.includes(p.classId) && p.certStatus !== 'inactive';
+      }).length;
+      const ok = certOk >= req.qty;
+      const partial = !ok && withWarn > 0;
+      if (!ok) met = false;
+      detail.push({ req, certOk, withWarn, ok, partial, needed: req.qty });
+    });
+    return { ...seg, met, detail };
+  });
+}
+
+function getShiftStatus(shift) {
+  if (shift.scheduleState === 'Complete') {
+    const cov = checkCoverage(shift);
+    return cov.some(s => !s.met) ? 'complete-gap' : 'complete';
+  }
+  if (shift.scheduleState === 'Active') {
+    const cov = checkCoverage(shift);
+    return cov.some(s => !s.met) ? 'active-gap' : 'active';
+  }
+  const cov = checkCoverage(shift);
+  return cov.some(s => !s.met) ? 'gap' : 'upcoming';
+}
+
+/* ─────────────────────────────────────────────
+   REST RULE VIOLATION CHECK
+   Each shift carries an explicit restViolations[]
+   — only set where a deliberate exception was made.
+   ───────────────────────────────────────────── */
+function getRestViolations(shift) {
+  return shift.restViolations || [];
+}
+
+/* ═══════════════════════════════
+   RENDER: SHIFT SELECTOR BAR
+   ═══════════════════════════════ */
+function renderShiftBar() {
+  const days = ['Mon 17 Mar','Tue 18 Mar','Wed 19 Mar'];
+  const bar = document.getElementById('shift-bar');
+  let html = '';
+  days.forEach((day, di) => {
+    if (di > 0) html += '<div class="shift-bar-sep"></div>';
+    html += `<div style="display:flex;align-items:center;gap:0;font-family:var(--mono);font-size:9px;color:var(--ink-m);padding:0 10px;white-space:nowrap">${day}</div>`;
+    SHIFTS.filter(s => s.dayIdx === di).forEach(shift => {
+      const idx = SHIFTS.indexOf(shift);
+      const status = getShiftStatus(shift);
+      const dotColor = shift.type==='shift-a' ? 'var(--teal)' : shift.type==='shift-b' ? 'var(--purple)' : 'var(--amber)';
+      const hasGap = status === 'gap' || status === 'complete-gap' || status === 'active-gap';
+      const badgeColor = status==='active' ? '#4DB6AC' : status==='complete' ? '#66BB6A' : hasGap ? '#EF5350' : '#4FC3F7';
+      const badgeBg = status==='active' ? 'rgba(77,182,172,0.15)' : status==='complete' ? 'rgba(102,187,106,0.12)' : hasGap ? 'rgba(239,83,80,0.15)' : 'rgba(79,195,247,0.12)';
+      const stateLabel = status==='active' ? 'ACTIVE' : status==='active-gap' ? '⚠ ACTIVE' : status==='complete' ? 'DONE' : hasGap ? '⚠ GAP' : 'SCHED';
+      const timeStr = shift.type==='shift-a' ? '06–14' : shift.type==='shift-b' ? '14–22' : '22–06';
+      html += `<button class="shift-tab${selectedShiftIdx===idx?' active':''}" onclick="selectShift(${idx})">
+        <div class="dot" style="background:${dotColor}"></div>
+        <span>${shift.name}</span>
+        <span class="shift-time">${timeStr}</span>
+        <span class="shift-badge" style="color:${badgeColor};background:${badgeBg}">${stateLabel}</span>
+      </button>`;
+    });
+  });
+  bar.innerHTML = html;
+}
+
+/* ═══════════════════════════════
+   RENDER: CALENDAR TIMELINE
+   ═══════════════════════════════ */
+function renderCalendar() {
+  const days = ['Mon 17 Mar','Tue 18 Mar ★ TODAY','Wed 19 Mar'];
+  let html = '';
+  days.forEach((day, di) => {
+    html += `<div class="timeline-day"><div class="timeline-day-label">${day}</div>`;
+    SHIFTS.filter(s => s.dayIdx === di).forEach(shift => {
+      const idx = SHIFTS.indexOf(shift);
+      const status = getShiftStatus(shift);
+      const stateClass = { complete:'state-complete','complete-gap':'state-gap', active:'state-active','active-gap':'state-gap', gap:'state-gap', upcoming:'state-upcoming' }[status];
+      const stateLabel = { complete:'Complete','complete-gap':'⚠ Gap', active:'● Active','active-gap':'⚠ Active/Gap', gap:'⚠ Gap', upcoming:'Upcoming' }[status];
+      const roster = shift.scheduleState==='Complete' ? shift.actual : shift.planned;
+      const chips = roster.map(pid => {
+        const p = PERSONS[pid];
+        if (!p) return '';
+        const cls = p.certStatus==='alert' ? 'alert' : p.certStatus==='warn' ? 'flagged' : p.certStatus==='inactive' ? 'inactive' : '';
+        return `<div class="person-chip ${cls}">${p.avatar}</div>`;
+      }).join('');
+      const restViolations = getRestViolations(shift);
+      html += `<div class="shift-block ${shift.type}${selectedShiftIdx===idx?' selected':''}" onclick="selectShift(${idx})">
+        <div class="shift-block-top">
+          <div class="shift-block-name">${shift.name}</div>
+          <div class="shift-block-state ${stateClass}">${stateLabel}</div>
+        </div>
+        <div class="shift-block-time">${shift.startDateTime.slice(11,16)}–${shift.finishDateTime.slice(11,16)} · ${PERSONS[shift.leaderId]?.name?.split(' ')[0]||'?'}</div>
+        <div class="shift-block-people">${chips}
+          ${restViolations.length ? `<div style="font-size:8.5px;color:var(--amber);margin-left:4px;align-self:center">⚠ rest</div>` : ''}
+        </div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink-m);margin-top:5px">${roster.length} planned</div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  document.getElementById('calendar-timeline').innerHTML = html;
+}
+
+/* ═══════════════════════════════
+   RENDER: SHIFT DETAIL (Centre)
+   ═══════════════════════════════ */
+function renderShiftDetail(idx) {
+  const shift = SHIFTS[idx];
+  const status = getShiftStatus(shift);
+  const isUpcoming = shift.scheduleState === 'Upcoming';
+  const isActive   = shift.scheduleState === 'Active';
+  const isComplete = shift.scheduleState === 'Complete';
+  const showActual = isComplete || isActive;
+
+  const segCoverage = checkCoverage(shift);
+  const coverageOk  = segCoverage.filter(s => s.met).length;
+  const coverageGap = segCoverage.filter(s => !s.met).length;
+  const rosterIds   = showActual && shift.actual.length ? shift.actual : shift.planned;
+  const absentIds   = showActual ? shift.planned.filter(p => !shift.actual.includes(p)) : [];
+  const restViolations = getRestViolations(shift);
+
+  document.getElementById('detail-col-title').textContent = `WorkSchedule · ${shift.scheduleId} · ${shift.name}`;
+
+  let html = '';
+
+  // Header card
+  const statusColor = {complete:'var(--green)','complete-gap':'var(--amber)',active:'var(--teal)',gap:'var(--red)',upcoming:'var(--blue)'}[status];
+  html += `<div class="shift-header-card">
+    <div class="shc-name">${shift.name} — ${shift.day.split(' ★')[0]}</div>
+    <div class="shc-sub">WorkCalendarEntry: ${shift.wceId} · WorkSchedule: ${shift.scheduleId}</div>
+    <div class="shc-sub">ScheduleState: <span style="color:${statusColor}">${shift.scheduleState}</span> &nbsp;·&nbsp; ${shift.startDateTime.replace('T',' ')} → ${shift.finishDateTime.slice(11,16)}</div>
+    ${restViolations.length ? `<div style="font-family:var(--mono);font-size:9px;color:var(--amber);margin-top:6px;background:var(--amber-dim);border:1px solid rgba(255,167,38,0.3);border-radius:5px;padding:4px 8px;">⚠ REST RULE: ${restViolations.map(pid=>PERSONS[pid]?.name?.split(' ')[0]).join(', ')} also worked previous shift</div>` : ''}
+    <div class="shc-meta">
+      <div class="shc-meta-cell">
+        <div class="shc-meta-val" style="color:var(--teal)">${rosterIds.length}/7</div>
+        <div class="shc-meta-lbl">${showActual && shift.actual.length ? 'PersonnelActual' : 'Planned'}</div>
+      </div>
+      <div class="shc-meta-cell">
+        <div class="shc-meta-val" style="color:${coverageGap>0?'var(--red)':'var(--green)'}">${coverageOk}/4</div>
+        <div class="shc-meta-lbl">Segments OK</div>
+      </div>
+      <div class="shc-meta-cell">
+        <div class="shc-meta-val" style="color:${coverageGap>0?'var(--red)':'var(--green)'}">${coverageGap}</div>
+        <div class="shc-meta-lbl">Coverage Gaps</div>
+      </div>
+      <div class="shc-meta-cell">
+        <div class="shc-meta-val" style="color:${absentIds.length>0?'var(--red)':'var(--green)'}">${showActual ? absentIds.length : '—'}</div>
+        <div class="shc-meta-lbl">${showActual ? 'Absent' : 'N/A yet'}</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Roster table
+  const tableTitle = isUpcoming ? 'PersonnelRequirement (JobOrder) — Planned' :
+                     isActive   ? 'PersonnelActual (JobResponse) — In Progress' :
+                                  'PersonnelActual (JobResponse) — Recorded';
+  html += `<div class="col-title" style="margin-bottom:10px">${tableTitle}</div>`;
+  html += `<table class="roster-table"><thead><tr>
+    <th>PersonID</th><th>Name</th><th>Class</th><th>Station</th><th>Cert</th>
+    ${showActual ? '<th>Actual</th>' : ''}
+  </tr></thead><tbody>`;
+
+  shift.planned.forEach(pid => {
+    const p = PERSONS[pid];
+    if (!p) return;
+    const certBadge = p.certStatus==='ok' ? '<span class="rt-status rt-ok">CERTIFIED</span>' :
+                      p.certStatus==='warn' ? '<span class="rt-status rt-warn">EXPIRING</span>' :
+                      p.certStatus==='alert' ? '<span class="rt-status rt-alert">EXPIRED</span>' :
+                                               '<span class="rt-status rt-na">INACTIVE</span>';
+    const actualCell = showActual
+      ? (shift.actual.includes(pid)
+          ? '<td><span class="rt-status rt-present">Present</span></td>'
+          : '<td><span class="rt-status rt-absent">Absent</span></td>')
+      : '';
+    const upcomingActualNote = isUpcoming ? '<td><span class="rt-status rt-na">N/A</span></td>' : '';
+    const rowOpacity = showActual && !shift.actual.includes(pid) ? 'opacity:0.55' : '';
+    html += `<tr class="clickable" style="${rowOpacity}" onclick="openPersonDrawer('${pid}','${shift.key}')">
+      <td class="rt-id">${pid}</td>
+      <td><div class="rt-name">${p.name}</div></td>
+      <td class="rt-class">${p.classLabel}</td>
+      <td style="font-size:10px;color:var(--ink-m)">${pid===shift.leaderId ? '⭐ Lead' : p.classId.includes('BLEND') ? 'Blending' : p.classId.includes('GRAN') ? 'Granulation' : p.classId.includes('QA') ? 'QC Lab' : 'Floor'}</td>
+      <td>${certBadge}</td>
+      ${showActual ? actualCell : upcomingActualNote}
+    </tr>`;
+  });
+  html += '</tbody></table>';
+
+  // ProcessSegment coverage
+  html += `<div class="col-title" style="margin-bottom:10px">ProcessSegment Coverage (PersonnelSegmentSpecification)</div>`;
+  html += `<div class="seg-grid">`;
+  segCoverage.forEach(seg => {
+    const pillClass = seg.met ? 'coverage-ok' : 'coverage-gap';
+    const pillLabel = seg.met ? '✓ Covered' : '✗ Gap';
+    html += `<div class="seg-card">
+      <div class="seg-card-top">
+        <div><div class="seg-id">${seg.id}</div><div class="seg-name">${seg.name}</div></div>
+        <div class="seg-coverage-pill ${pillClass}">${pillLabel}</div>
+      </div>
+      <div class="seg-reqs">`;
+    seg.detail.forEach(d => {
+      const color = d.ok ? 'var(--green)' : d.partial ? 'var(--amber)' : 'var(--red)';
+      const icon  = d.ok ? '✓' : d.partial ? '⚠' : '✗';
+      const note  = d.ok ? `${d.certOk} qualified` : d.partial ? `${d.withWarn} present (${d.certOk} fully cert)` : `${d.certOk} qualified — need ${d.needed}`;
+      html += `<div class="seg-req"><span class="seg-req-icon" style="color:${color}">${icon}</span><span>${d.req.label} — <b style="color:${color}">${note}</b></span></div>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `</div>`;
+
+  // AI Recommendation for upcoming shifts with coverage gap
+  if (shift.aiRecommendation) {
+    const rec = shift.aiRecommendation;
+    html += `<div style="background:rgba(239,83,80,0.08);border:1px solid rgba(239,83,80,0.35);border-radius:11px;padding:14px 16px;margin-bottom:14px;">
+      <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--red);margin-bottom:8px;">◆ AI — Coverage Gap Resolution</div>
+      <div style="font-size:12px;color:var(--ink-s);margin-bottom:8px;line-height:1.6">
+        <b style="color:var(--ink)">Gap:</b> ${rec.gap}<br>
+        <b style="color:var(--ink)">Reason:</b> ${rec.reason}
+      </div>
+      <div style="background:var(--teal-dim);border:1px solid rgba(77,182,172,0.3);border-radius:7px;padding:10px 12px;margin-bottom:10px;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--teal);margin-bottom:5px;">RECOMMENDED ACTION</div>
+        <div style="font-size:12px;color:var(--ink);line-height:1.6">${rec.suggestion}</div>
+      </div>
+      <button onclick="assignPerson('${rec.assignPerson}','${shift.key}')" style="background:var(--teal);color:#051824;font-weight:600;font-size:12px;padding:8px 18px;border-radius:7px;border:none;cursor:pointer;font-family:var(--body);">
+        ✓ Assign ${PERSONS[rec.assignPerson]?.name} to this shift
+      </button>
+    </div>`;
+  }
+
+  // Shift notes / handover
+  html += `<div class="col-title" style="margin-bottom:10px">Shift Notes &amp; Handover (WorkRecord)</div>`;
+  html += `<div class="handover-card">`;
+  if (!isUpcoming) {
+    const nextShift = SHIFTS[idx + 1];
+    html += `<div class="hov-title">Outgoing → Incoming <span class="hov-arrow">→</span></div>
+    <div class="hov-row">
+      <div class="hov-col">
+        <div class="hov-col-label">Outgoing Lead</div>
+        <div class="hov-person">
+          <div class="hov-avatar" style="background:${PERSONS[shift.leaderId]?.bg};color:#9CBFE0">${PERSONS[shift.leaderId]?.avatar}</div>
+          <div><div class="hov-person-name">${PERSONS[shift.leaderId]?.name}</div><div class="hov-person-role">Shift Leader</div></div>
+        </div>
+      </div>
+      <div class="hov-col">
+        <div class="hov-col-label">Incoming Lead</div>
+        ${nextShift ? `<div class="hov-person">
+          <div class="hov-avatar" style="background:${PERSONS[nextShift.leaderId]?.bg};color:#9CBFE0">${PERSONS[nextShift.leaderId]?.avatar}</div>
+          <div><div class="hov-person-name">${PERSONS[nextShift.leaderId]?.name}</div><div class="hov-person-role">Shift Leader</div></div>
+        </div>` : '<div style="color:var(--ink-m);font-size:11px">Last shift in window</div>'}
+      </div>
+    </div>`;
+  } else {
+    html += `<div class="hov-title">Upcoming — Pre-Shift Briefing<span class="hov-arrow">⏳</span></div>`;
+  }
+  html += `<div>`;
+  shift.notes.forEach(n => {
+    const cls = n.type==='ok' ? 'ok' : n.type==='alert' ? 'alert' : n.type==='info' ? 'info' : '';
+    html += `<div class="hov-note ${cls}">${n.text}</div>`;
+  });
+  html += `</div></div>`;
+
+  document.getElementById('shift-detail-content').innerHTML = html;
+}
+
+/* ═══════════════════════════════
+   RENDER: AI PANEL
+   ═══════════════════════════════ */
+function renderAI(idx) {
+  const shift = SHIFTS[idx];
+
+  // Global stats
+  const allCoverage = SHIFTS.map(s => ({ shift: s, cov: checkCoverage(s) }));
+  const totalGapShifts = allCoverage.filter(({cov}) => cov.some(s=>!s.met)).length;
+  const totalOkShifts  = 9 - totalGapShifts;
+  document.getElementById('hdr-coverage').textContent = totalOkShifts;
+  document.getElementById('hdr-gaps').textContent = totalGapShifts;
+
+  // AI Summary for selected shift
+  const cov = checkCoverage(shift);
+  const gapSegs = cov.filter(s => !s.met).map(s => s.name);
+  const alerts = shift.notes.filter(n => n.type==='alert');
+  const warns  = shift.notes.filter(n => n.type==='warn');
+  let summary = '';
+  if (shift.scheduleState==='Upcoming' && alerts.length > 0) {
+    summary = `<b>${shift.name} has ${gapSegs.length} unresolved segment gap(s): ${gapSegs.join(', ')}.</b> The roster as planned cannot meet ProcessSegment requirements. ${shift.actual.length === 0 ? 'No PersonnelActual recorded yet — this shift has not started.' : ''} Industry data: uncovered QA roles increase batch rejection risk by <b>3.5–3.8%</b> (BioPlan 22nd Annual).`;
+  } else if (shift.scheduleState==='Active') {
+    summary = `${shift.name} active. <b>${shift.actual.length} of ${shift.planned.length} planned operators present.</b> ${gapSegs.length > 0 ? `<b style="color:var(--red)">Active gaps: ${gapSegs.join(', ')}.</b> Escalate now.` : 'All required segments covered.'} ${warns.length} qualification warning(s) on shift.`;
+  } else {
+    const absent = shift.planned.filter(p => !shift.actual.includes(p));
+    summary = `${shift.name} complete. PersonnelActual recorded: <b>${shift.actual.length}/${shift.planned.length}.</b> ${absent.length > 0 ? `${absent.length} absence(s): ${absent.map(p=>PERSONS[p]?.name?.split(' ')[0]).join(', ')}.` : 'No absences.'} ${gapSegs.length > 0 ? `<b>Segment gaps recorded: ${gapSegs.join(', ')}.</b> CAPA required.` : 'All segments were covered.'}`;
+  }
+  document.getElementById('ai-summary-text').innerHTML = summary;
+
+  // Risk gauges
+  const certAlerts = Object.values(PERSONS).filter(p=>p.certStatus==='alert').length;
+  const certWarns  = Object.values(PERSONS).filter(p=>p.certStatus==='warn').length;
+  const totalP = Object.keys(PERSONS).length;
+  const qaRisk = Math.round((SHIFTS.filter(s => !checkCoverage(s).find(c=>c.id==='SEG-QA-01')?.met).length / 9) * 100);
+  const granRisk = Math.round((SHIFTS.filter(s => !checkCoverage(s).find(c=>c.id==='SEG-GRAN-01')?.met).length / 9) * 100);
+
+  document.getElementById('risk-gauges').innerHTML = [
+    { label:'Shifts with gaps', pct: Math.round((totalGapShifts/9)*100), color: totalGapShifts>4?'#EF5350':'#FFA726' },
+    { label:'Cert non-compliance', pct: Math.round(((certAlerts+certWarns)/totalP)*100), color:'#FFA726' },
+    { label:'QA coverage risk', pct: qaRisk, color: qaRisk>50?'#EF5350':'#FFA726' },
+    { label:'Granulation risk', pct: granRisk, color: granRisk>40?'#EF5350':'#FFA726' },
+  ].map(g=>`<div class="risk-row">
+    <div class="risk-label">${g.label}</div>
+    <div class="risk-bar"><div class="risk-fill" style="width:${g.pct}%;background:${g.color}"></div></div>
+    <div class="risk-pct">${g.pct}%</div>
+  </div>`).join('');
+
+  // AI Flags — 3 real gaps + 2 systemic root-cause flags
+  const flags = [];
+
+  // Gap 1 (Complete): mon-b QA gap — CAPA raised
+  flags.push({
+    type:'info', who:'WCE-MON-B — Mon Shift B (Complete)',
+    msg:'<b>QA gap recorded.</b> OP-318 absent; QA-Certification also EXPIRED. SEG-QA-01 was uncovered for the shift — QA-071 covered overtime. <b>CAPA-2025-031 raised.</b> Deviation logged in WorkPerformance.JobResponse.',
+    action:'Close CAPA-2025-031 · Remove OP-318 from B-team roster until recertified',
+  });
+
+  // Gap 2 (Active): tue-a QA gap — live now
+  flags.push({
+    type:'alert', who:'WCE-TUE-A — Tue Shift A (Active NOW)',
+    msg:'<b>OP-318 no-show again.</b> QA-Certification EXPIRED. SEG-QA-01 currently uncovered. QA-071 on mandatory rest — cannot be called in without a rest-rule waiver. QA Manager notified.',
+    action:'Issue rest-rule waiver for QA-071 · Initiate OP-318 recertification today',
+  });
+
+  // Gap 3 (Upcoming): tue-b blending gap — actionable
+  flags.push({
+    type:'alert', who:'WCE-TUE-B — Tue Shift B (Upcoming, starts 14:00)',
+    msg:'<b>OP-507 inactive (on leave).</b> She was the only blending-capable operator planned for this shift. SEG-BLD-01 will be uncovered unless replaced before 14:00. <b>OP-612 (Meera Iyer) is available and rested.</b>',
+    action:'Assign OP-612 Meera Iyer to Tue Shift B — click "Assign" in shift detail',
+  });
+
+  // Systemic root cause 1: OP-318 expired
+  flags.push({
+    type:'warn', who:'OP-318 — Vikram Tiwari (Systemic)',
+    msg:'<b>QA-Certification expired 12 days ago.</b> Appearing in B-team QA slots causes recurring gaps. Must be removed from all future shift plans until recertified. Every shift he appears in without QA-071 will show a gap.',
+    action:'Remove OP-318 from all planned rosters · Book recertification with ExternalBody',
+  });
+
+  // Systemic root cause 2: OP-507 inactive
+  flags.push({
+    type:'warn', who:'OP-507 — Kavitha Reddy (Systemic)',
+    msg:'<b>EffectiveEndDate passed.</b> Blending pool has only 2 active operators (OP-612, OP-114). OP-114 has expiring cert. Confirm OP-507 return date or recruit a temporary BLEND-OPS to restore pool depth.',
+    action:'Confirm OP-507 return date · Consider temporary BLEND-OPS hire',
+  });
+
+  document.getElementById('ai-flags').innerHTML = flags.map(f=>`
+    <div class="ai-flag ${f.type}">
+      <div class="ai-flag-top">
+        <span class="ai-flag-tag tag-${f.type}">${f.type.toUpperCase()}</span>
+        <span class="ai-flag-who">${f.who}</span>
+      </div>
+      <div class="ai-flag-msg">${f.msg}</div>
+      <div class="ai-flag-action" onclick="showToast('◆','Action logged','${f.action.replace(/'/g,"\\'")}')">→ ${f.action}</div>
+    </div>`).join('');
+}
+
+/* ═══════════════════════════════
+   SELECT SHIFT
+   ═══════════════════════════════ */
+function selectShift(idx) {
+  selectedShiftIdx = idx;
+  renderShiftBar();
+  renderCalendar();
+  renderShiftDetail(idx);
+  renderAI(idx);
+}
+
+/* ═══════════════════════════════
+   PERSON DRAWER
+   ═══════════════════════════════ */
+function openPersonDrawer(personId, shiftKey) {
+  const p = PERSONS[personId];
+  const shift = SHIFTS.find(s => s.key === shiftKey);
+  if (!p || !shift) return;
+
+  document.getElementById('d-eyebrow').textContent = `${personId} · ISA-95 PersonType`;
+  document.getElementById('d-name').textContent = p.name;
+  document.getElementById('d-sub').textContent = p.classLabel;
+
+  const certColor = {ok:'var(--green)',warn:'var(--amber)',alert:'var(--red)',inactive:'var(--ink-m)'}[p.certStatus];
+  const certLabel = {ok:'CERTIFIED',warn:'EXPIRING',alert:'EXPIRED',inactive:'INACTIVE'}[p.certStatus];
+  const isPlanned = shift.planned.includes(personId);
+  const isActual  = shift.actual.includes(personId);
+  const showActual = shift.scheduleState !== 'Upcoming';
+
+  // Check if this person has a rest violation on THIS shift
+  const restViolationsForPerson = (shift.restViolations || []).includes(personId)
+    ? [`${SHIFTS[SHIFTS.indexOf(shift)-1]?.name||'prev'} → ${shift.name} (emergency consecutive — waiver required)`]
+    : [];
+
+  let html = `<div class="d-sec">
+    <div class="d-sec-title">ISA-95 PersonType Fields</div>
+    <div class="d-field-row"><div class="d-field-key">PersonID</div><div class="d-field-val" style="color:var(--teal)">${personId}</div></div>
+    <div class="d-field-row"><div class="d-field-key">PersonName</div><div class="d-field-val">${p.name}</div></div>
+    <div class="d-field-row"><div class="d-field-key">PersonnelClassID</div><div class="d-field-val" style="color:var(--purple)">${p.classId}</div></div>
+    <div class="d-field-row"><div class="d-field-key">CertStatus (PersonProperty)</div><div class="d-field-val" style="color:${certColor}">${certLabel}</div></div>
+    <div class="d-field-row"><div class="d-field-key">Note</div><div class="d-field-val" style="font-size:10px;text-align:right;max-width:200px;line-height:1.4;color:var(--ink-m)">${p.note}</div></div>
+  </div>`;
+
+  html += `<div class="d-sec">
+    <div class="d-sec-title">WorkSchedule Assignment — ${shift.scheduleId}</div>
+    <div class="d-field-row"><div class="d-field-key">WorkCalendarEntry</div><div class="d-field-val">${shift.wceId}</div></div>
+    <div class="d-field-row"><div class="d-field-key">PersonnelRequirement</div><div class="d-field-val" style="color:${isPlanned?'var(--green)':'var(--red)'}">${isPlanned?'PLANNED':'NOT IN PLAN'}</div></div>
+    <div class="d-field-row"><div class="d-field-key">PersonnelActual</div><div class="d-field-val" style="color:${!showActual?'var(--ink-m)':isActual?'var(--green)':'var(--red)'}">${!showActual?'N/A — Shift Not Started':isActual?'PRESENT':'ABSENT'}</div></div>
+    ${shift.actualStart ? `<div class="d-field-row"><div class="d-field-key">Actual StartTime</div><div class="d-field-val">${shift.actualStart}</div></div>` : ''}
+    <div class="d-field-row"><div class="d-field-key">Shifts assigned (3-day)</div><div class="d-field-val" style="color:var(--teal)">${onShifts.length} shifts</div></div>
+  </div>`;
+
+  if (restViolationsForPerson.length > 0) {
+    html += `<div class="d-sec">
+      <div class="d-sec-title" style="color:var(--amber)">⚠ Rest Rule Violations</div>
+      ${restViolationsForPerson.map(v=>`<div style="font-size:11px;color:var(--amber);padding:5px 8px;background:var(--amber-dim);border:1px solid rgba(255,167,38,0.3);border-radius:5px;margin-bottom:4px">${v}</div>`).join('')}
+    </div>`;
+  }
+
+  // ProcessSegments covered by this person
+  const coveredSegs = PROCESS_SEGMENTS.filter(seg => seg.requirements.some(r => r.classId === p.classId));
+  html += `<div class="d-sec">
+    <div class="d-sec-title">ProcessSegments This Person Covers</div>
+    ${coveredSegs.map(seg => {
+      const req = seg.requirements.find(r => r.classId === p.classId);
+      return `<div class="d-field-row"><div class="d-field-key">${seg.id} · ${seg.name}</div><div class="d-field-val" style="color:var(--teal);font-size:10px">${req.label}</div></div>`;
+    }).join('')}
+  </div>`;
+
+  const rec = p.certStatus==='alert'
+    ? `<b>Expired qualification.</b> Cannot execute GMP tasks per 21 CFR Part 11. Remove from all shift plans immediately. Every shift this person appears in will show a false coverage signal in WorkSchedule.`
+    : p.certStatus==='inactive'
+    ? `<b>EffectiveEndDate passed.</b> Must not appear in any WorkSchedule.JobOrder.PersonnelRequirement. Confirm return date and reinstate only after EffectiveEndDate is updated and access reinstated.`
+    : p.certStatus==='warn'
+    ? `Qualification expiring. Schedule renewal before next assigned shift. If renewal is missed, this person must be treated as non-qualified and removed from coverage counts for that segment.`
+    : restViolationsForPerson.length > 0
+    ? `<b>Rest rule violations detected.</b> Consecutive shift assignments reduce operator alertness and increase human error risk. BioPlan data: operator fatigue is a contributing factor in <b>3.5% of batch failures</b> at commercial scale. Resolve scheduling conflict.`
+    : `All qualifications current. No scheduling conflicts detected for this shift.`;
+
+  html += `<div class="d-sec">
+    <div class="d-sec-title">AI Recommendation</div>
+    <div class="ai-rec-box"><span class="label">◆ AI · Shift Intelligence</span>${rec}</div>
+  </div>
+  <div class="d-actions">
+    <button class="d-btn d-btn-primary" onclick="showToast('✓','Logged','Action initiated for ${p.name}.');closeDrawer()">Log Action</button>
+    <button class="d-btn d-btn-secondary" onclick="closeDrawer()">Close</button>
+  </div>`;
+
+  document.getElementById('d-body').innerHTML = html;
+  document.getElementById('drawer-scrim').classList.add('open');
+}
+
+function closeDrawer(e) {
+  if (!e || e.target.id==='drawer-scrim')
+    document.getElementById('drawer-scrim').classList.remove('open');
+}
+
+let toastTimer;
+function showToast(icon, title, msg) {
+  document.getElementById('toast-icon').textContent = icon;
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-msg').textContent = msg;
+  const el = document.getElementById('toast');
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 4000);
+}
+
+/* ── ASSIGN PERSON (AI recommendation action) ── */
+function assignPerson(personId, shiftKey) {
+  const shift = SHIFTS.find(s => s.key === shiftKey);
+  const p = PERSONS[personId];
+  if (!shift || !p) return;
+  if (!shift.planned.includes(personId)) {
+    shift.planned = shift.planned.filter(pid => pid !== 'OP-507');
+    shift.planned.push(personId);
+  }
+  shift.aiRecommendation = null;
+  shift.notes = shift.notes.filter(n => n.type !== 'alert');
+  shift.notes.unshift({ type:'ok', text:`AI recommendation accepted: ${p.name} (${personId}) assigned to this shift. SEG-BLD-01 now covered.` });
+  showToast('✓', 'Assignment confirmed', `${p.name} added to ${shift.name}. Coverage gap resolved.`);
+  renderShiftBar();
+  renderCalendar();
+  renderShiftDetail(SHIFTS.indexOf(shift));
+  renderAI(SHIFTS.indexOf(shift));
+}
+
+/* ── INIT ── */
+renderShiftBar();
+renderCalendar();
+renderShiftDetail(selectedShiftIdx);
+renderAI(selectedShiftIdx);
+</script>
+</body>
+</html>

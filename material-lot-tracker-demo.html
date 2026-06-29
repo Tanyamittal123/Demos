@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Material Lot Tracker — ISA-95 Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:          #0F1117;
+  --bg2:         #0B0E14;
+  --card:        #1A1F2E;
+  --card2:       #1E2435;
+  --card3:       #252D3D;
+  --line:        #2A3347;
+  --line2:       #1E2A3A;
+  --green:       #00C896;
+  --green-dim:   rgba(0,200,150,0.10);
+  --green-glow:  rgba(0,200,150,0.22);
+  --coral:       #FF6B6B;
+  --coral-dim:   rgba(255,107,107,0.10);
+  --orange:      #FFB347;
+  --orange-dim:  rgba(255,179,71,0.10);
+  --violet:      #A78BFA;
+  --violet-dim:  rgba(167,139,250,0.10);
+  --blue:        #60A5FA;
+  --blue-dim:    rgba(96,165,250,0.10);
+  --ink:         #F0F4FF;
+  --ink-s:       #8B9AB8;
+  --ink-m:       #4A5670;
+  --mono:        'Fira Code', monospace;
+  --disp:        'Syne', sans-serif;
+  --body:        'Inter', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  min-height: 100vh;
+  font-size: 13px;
+}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+/* ── HEADER ── */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--line);
+  padding: 0 28px;
+  height: 58px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 60;
+}
+.hdr-left { display: flex; align-items: center; gap: 16px; }
+.hdr-back {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-m);
+  text-decoration: none; border: 1px solid var(--line);
+  padding: 4px 10px; border-radius: 4px; letter-spacing: 0.5px;
+  transition: all .15s;
+}
+.hdr-back:hover { color: var(--green); border-color: var(--green); }
+.hdr-title {
+  font-family: var(--disp); font-weight: 800; font-size: 20px; letter-spacing: -0.3px;
+}
+.hdr-title span { color: var(--green); }
+.hdr-schema {
+  font-family: var(--mono); font-size: 9.5px; color: var(--ink-m); letter-spacing: 0.5px;
+}
+.hdr-schema b { color: var(--violet); }
+.hdr-right { display: flex; align-items: center; gap: 24px; }
+.hdr-kpi { text-align: center; }
+.hdr-kpi-val { font-family: var(--mono); font-size: 18px; font-weight: 600; }
+.hdr-kpi-lbl { font-size: 9px; color: var(--ink-m); text-transform: uppercase; letter-spacing: 1px; margin-top: 1px; }
+.live-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 9.5px; color: var(--green);
+  border: 1px solid rgba(0,200,150,0.3); padding: 5px 12px; border-radius: 14px;
+  letter-spacing: 1px;
+}
+.live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── MAIN LAYOUT ── */
+.wrap { display: grid; grid-template-columns: 260px 1fr 290px; height: calc(100vh - 58px); overflow: hidden; }
+.col { overflow-y: auto; border-right: 1px solid var(--line); }
+.col:last-child { border-right: none; }
+.col-inner { padding: 18px 16px; }
+.col-title {
+  font-family: var(--mono); font-size: 9.5px; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--ink-m); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.col-title::after { content:''; flex:1; height:1px; background:var(--line); }
+
+/* ── LEFT: MATERIAL DEFINITIONS ── */
+.matdef-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 13px 14px; margin-bottom: 9px; cursor: pointer; transition: all .18s;
+}
+.matdef-card:hover { border-color: var(--green); }
+.matdef-card.selected { border-color: var(--green); background: var(--green-dim); }
+.matdef-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.matdef-id { font-family: var(--mono); font-size: 9px; color: var(--violet); letter-spacing: 0.5px; margin-bottom: 2px; }
+.matdef-name { font-family: var(--disp); font-size: 13.5px; font-weight: 700; line-height: 1.3; }
+.matdef-class-tag {
+  font-family: var(--mono); font-size: 8.5px; padding: 2px 8px; border-radius: 10px;
+  background: var(--violet-dim); color: var(--violet); border: 1px solid rgba(167,139,250,0.25);
+  flex-shrink: 0;
+}
+.matdef-props { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.matdef-prop { display: flex; justify-content: space-between; font-size: 10.5px; }
+.matdef-prop-key { color: var(--ink-m); }
+.matdef-prop-val { font-family: var(--mono); font-size: 10px; color: var(--ink-s); }
+.lot-count-row { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line2); display: flex; gap: 8px; }
+.lc-chip {
+  font-family: var(--mono); font-size: 9px; padding: 2px 8px; border-radius: 3px;
+  display: flex; align-items: center; gap: 4px;
+}
+.lc-chip.released { background: var(--green-dim); color: var(--green); }
+.lc-chip.quarantine { background: var(--orange-dim); color: var(--orange); }
+.lc-chip.expired { background: var(--coral-dim); color: var(--coral); }
+.lc-chip.consumed { background: rgba(74,86,112,0.2); color: var(--ink-m); }
+
+/* ── CENTRE: LOT TRACKER ── */
+.lot-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.lf-btn {
+  font-family: var(--mono); font-size: 9.5px; padding: 4px 12px; border-radius: 14px;
+  border: 1px solid var(--line); background: transparent; color: var(--ink-s);
+  cursor: pointer; transition: all .15s; letter-spacing: 0.3px;
+}
+.lf-btn:hover { border-color: var(--green); color: var(--green); }
+.lf-btn.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+
+.lot-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  margin-bottom: 12px; overflow: hidden; cursor: pointer; transition: all .2s;
+}
+.lot-card:hover { border-color: var(--line2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); transform: translateY(-1px); }
+.lot-card.status-released { border-left: 3px solid var(--green); }
+.lot-card.status-quarantine { border-left: 3px solid var(--orange); }
+.lot-card.status-expired { border-left: 3px solid var(--coral); }
+.lot-card.status-in-use { border-left: 3px solid var(--blue); }
+.lot-card.status-consumed { border-left: 3px solid var(--ink-m); opacity: 0.65; }
+
+.lot-card-head {
+  padding: 13px 16px 10px; display: flex; justify-content: space-between; align-items: flex-start;
+}
+.lot-id-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.lot-id { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+.lot-status-badge {
+  font-family: var(--mono); font-size: 8.5px; font-weight: 600; padding: 2px 8px;
+  border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.sb-released { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,200,150,0.3); }
+.sb-quarantine { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(255,179,71,0.3); }
+.sb-expired { background: var(--coral-dim); color: var(--coral); border: 1px solid rgba(255,107,107,0.3); }
+.sb-in-use { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(96,165,250,0.3); }
+.sb-consumed { background: rgba(74,86,112,0.15); color: var(--ink-m); border: 1px solid var(--line); }
+
+.lot-matdef { font-family: var(--mono); font-size: 9.5px; color: var(--violet); }
+.lot-meta-grid {
+  padding: 0 16px 10px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;
+}
+.lmg-cell { background: var(--card2); border-radius: 6px; padding: 7px 9px; }
+.lmg-key { font-size: 9px; color: var(--ink-m); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 3px; }
+.lmg-val { font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+.lmg-val.ok { color: var(--green); }
+.lmg-val.warn { color: var(--orange); }
+.lmg-val.alert { color: var(--coral); }
+.lmg-val.blue { color: var(--blue); }
+.lmg-val.muted { color: var(--ink-m); }
+
+/* The signature element: lot lifecycle timeline */
+.lot-timeline { padding: 10px 16px 14px; }
+.lt-label { font-family: var(--mono); font-size: 9px; color: var(--ink-m); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.lt-track { position: relative; height: 8px; background: var(--card3); border-radius: 4px; overflow: visible; }
+.lt-fill { height: 100%; border-radius: 4px; transition: width .5s; }
+.lt-stages { display: flex; justify-content: space-between; margin-top: 5px; }
+.lt-stage-lbl { font-family: var(--mono); font-size: 8px; color: var(--ink-m); letter-spacing: 0.3px; }
+.lt-marker {
+  position: absolute; top: -3px; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--bg); transform: translateX(-50%);
+  box-shadow: 0 0 8px rgba(0,0,0,0.4);
+}
+
+/* consumption bar */
+.consumption-bar { padding: 0 16px 13px; }
+.cb-label { font-size: 9px; color: var(--ink-m); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; display: flex; justify-content: space-between; }
+.cb-track { height: 5px; background: var(--card3); border-radius: 3px; overflow: hidden; }
+.cb-fill { height: 100%; border-radius: 3px; transition: width .5s; }
+
+/* ── RIGHT: AI PANEL ── */
+.ai-summary-box {
+  background: var(--green-dim); border: 1px solid rgba(0,200,150,0.25);
+  border-radius: 10px; padding: 14px; margin-bottom: 16px;
+}
+.ai-summary-box.warn { background: var(--orange-dim); border-color: rgba(255,179,71,0.3); }
+.ai-summary-box.alert { background: var(--coral-dim); border-color: rgba(255,107,107,0.35); }
+.ai-head { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--green); margin-bottom: 6px; }
+.ai-summary-box.warn .ai-head { color: var(--orange); }
+.ai-summary-box.alert .ai-head { color: var(--coral); }
+.ai-body { font-size: 12px; color: var(--ink-s); line-height: 1.65; }
+.ai-body b { color: var(--ink); }
+
+.ai-section { margin-bottom: 18px; }
+.ai-sec-title {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.3px; color: var(--ink-m); margin-bottom: 9px;
+  display: flex; align-items: center; gap: 7px;
+}
+.ai-sec-title::after { content:''; flex:1; height:1px; background:var(--line); }
+
+.ai-flag {
+  background: var(--card); border: 1px solid var(--line);
+  border-left: 3px solid; border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 7px; transition: transform .15s;
+}
+.ai-flag:hover { transform: translateX(2px); }
+.ai-flag.alert { border-left-color: var(--coral); }
+.ai-flag.warn  { border-left-color: var(--orange); }
+.ai-flag.info  { border-left-color: var(--blue); }
+.ai-flag.ok    { border-left-color: var(--green); }
+
+.ai-flag-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.ai-tag {
+  font-family: var(--mono); font-size: 8px; font-weight: 700;
+  padding: 2px 7px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.t-alert { background: var(--coral-dim); color: var(--coral); }
+.t-warn  { background: var(--orange-dim); color: var(--orange); }
+.t-info  { background: var(--blue-dim); color: var(--blue); }
+.t-ok    { background: var(--green-dim); color: var(--green); }
+.ai-flag-lot { font-family: var(--mono); font-size: 9px; color: var(--ink-s); }
+.ai-flag-msg { font-size: 11.5px; color: var(--ink-s); line-height: 1.5; }
+.ai-flag-msg b { color: var(--ink); }
+.ai-flag-action {
+  margin-top: 6px; font-size: 10.5px; color: var(--green);
+  cursor: pointer; display: flex; align-items: center; gap: 4px;
+}
+.ai-flag-time { font-family: var(--mono); font-size: 9px; color: var(--ink-m); margin-top: 3px; }
+
+.inv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 14px; }
+.inv-cell {
+  background: var(--card); border: 1px solid var(--line); border-radius: 7px;
+  padding: 10px 11px; text-align: center;
+}
+.inv-val { font-family: var(--mono); font-size: 17px; font-weight: 600; margin-bottom: 2px; }
+.inv-lbl { font-size: 9.5px; color: var(--ink-m); line-height: 1.3; }
+
+.consumption-chart { display: flex; gap: 2.5px; align-items: flex-end; height: 48px; margin-top: 6px; }
+.cc-bar { flex: 1; border-radius: 2px 2px 0 0; background: var(--green); opacity: 0.5; min-height: 3px; transition: height .4s; }
+.cc-bar.high { opacity: 0.85; }
+.cc-bar.spike { background: var(--orange); opacity: 0.9; }
+
+.isa-note {
+  background: var(--card2); border: 1px solid var(--line); border-radius: 7px;
+  padding: 10px 12px; font-size: 10.5px; color: var(--ink-m); line-height: 1.6; margin-top: 10px;
+}
+.isa-note b { color: var(--ink-s); }
+
+/* ── DRAWER ── */
+.scrim {
+  position: fixed; inset: 0; background: rgba(5,8,14,0.72);
+  backdrop-filter: blur(4px); z-index: 100;
+  opacity: 0; pointer-events: none; transition: opacity .22s;
+}
+.scrim.open { opacity: 1; pointer-events: all; }
+.drawer {
+  position: fixed; top: 58px; right: 0; bottom: 0; width: 460px; max-width: 95vw;
+  background: var(--card); border-left: 1px solid var(--line);
+  transform: translateX(100%); transition: transform .28s cubic-bezier(.2,.8,.2,1);
+  z-index: 101; overflow-y: auto;
+}
+.scrim.open .drawer { transform: translateX(0); }
+.drawer-head {
+  padding: 20px 22px 14px; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; background: var(--card); z-index: 2;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.d-close {
+  width: 28px; height: 28px; border-radius: 6px; background: var(--card2);
+  border: 1px solid var(--line); color: var(--ink-s); font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0;
+}
+.d-close:hover { border-color: var(--green); color: var(--ink); }
+.d-eyebrow { font-family: var(--mono); font-size: 9.5px; color: var(--ink-m); letter-spacing: 1px; margin-bottom: 4px; }
+.d-title { font-family: var(--disp); font-weight: 800; font-size: 20px; }
+.d-sub { font-family: var(--mono); font-size: 10px; color: var(--violet); margin-top: 2px; }
+.drawer-body { padding: 18px 22px 30px; }
+.d-sec { margin-bottom: 20px; }
+.d-sec-title {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--ink-m); margin-bottom: 9px;
+  display: flex; align-items: center; gap: 6px;
+}
+.d-sec-title::after { content:''; flex:1; height:1px; background:var(--line); }
+.d-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 7px 0; border-bottom: 1px solid rgba(42,51,71,0.5);
+  font-size: 11.5px;
+}
+.d-row:last-child { border-bottom: none; }
+.d-key { color: var(--ink-m); font-size: 11px; min-width: 140px; }
+.d-val { font-family: var(--mono); font-size: 11px; font-weight: 500; text-align: right; }
+
+.status-banner {
+  padding: 13px 15px; border-radius: 9px; border: 1px solid;
+  margin-bottom: 14px;
+}
+.status-banner.released { background: var(--green-dim); border-color: rgba(0,200,150,0.3); }
+.status-banner.quarantine { background: var(--orange-dim); border-color: rgba(255,179,71,0.3); }
+.status-banner.expired { background: var(--coral-dim); border-color: rgba(255,107,107,0.35); }
+.status-banner.in-use { background: var(--blue-dim); border-color: rgba(96,165,250,0.3); }
+.status-banner.consumed { background: rgba(74,86,112,0.1); border-color: var(--line); }
+.sb-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.sb-pill { font-family: var(--mono); font-size: 9px; font-weight: 700; padding: 3px 10px; border-radius: 11px; text-transform: uppercase; }
+.sb-msg { font-size: 12px; color: var(--ink-s); line-height: 1.55; }
+.sb-msg b { color: var(--ink); }
+
+.actual-row {
+  background: var(--card2); border: 1px solid var(--line); border-radius: 7px;
+  padding: 10px 12px; margin-bottom: 7px;
+}
+.ar-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.ar-id { font-family: var(--mono); font-size: 10px; color: var(--blue); }
+.ar-use { font-family: var(--mono); font-size: 9px; padding: 2px 7px; border-radius: 3px; }
+.ar-use.input { background: var(--green-dim); color: var(--green); }
+.ar-use.output { background: var(--violet-dim); color: var(--violet); }
+.ar-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.ar-field { font-size: 10.5px; }
+.ar-field-key { color: var(--ink-m); font-size: 9.5px; margin-bottom: 1px; }
+.ar-field-val { font-family: var(--mono); font-size: 10.5px; color: var(--ink-s); }
+
+.ai-rec {
+  background: var(--green-dim); border: 1px solid rgba(0,200,150,0.25);
+  border-radius: 8px; padding: 13px 14px;
+}
+.ai-rec.warn { background: var(--orange-dim); border-color: rgba(255,179,71,0.3); }
+.ai-rec.alert { background: var(--coral-dim); border-color: rgba(255,107,107,0.35); }
+.ai-rec-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--green); margin-bottom: 6px; display: block; }
+.ai-rec.warn .ai-rec-label { color: var(--orange); }
+.ai-rec.alert .ai-rec-label { color: var(--coral); }
+.ai-rec-text { font-size: 12px; color: var(--ink-s); line-height: 1.6; }
+.ai-rec-text b { color: var(--ink); }
+
+.d-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.d-btn {
+  padding: 8px 16px; border-radius: 7px; font-size: 12px; font-weight: 500;
+  border: none; cursor: pointer; font-family: var(--body); transition: all .15s;
+}
+.d-btn-primary { background: var(--green); color: #061410; font-weight: 700; }
+.d-btn-primary:hover { background: #00E6AD; }
+.d-btn-secondary { background: var(--card2); color: var(--ink-s); border: 1px solid var(--line); }
+.d-btn-secondary:hover { border-color: var(--green); color: var(--ink); }
+.d-btn-warn { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(255,179,71,0.3); }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 22px; right: 22px; max-width: 330px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 13px 16px; display: flex; gap: 10px;
+  transform: translateY(14px); opacity: 0; transition: all .28s;
+  z-index: 200; pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-body { font-size: 11.5px; color: var(--ink-s); line-height: 1.5; }
+.toast-body b { display: block; font-size: 12.5px; color: var(--ink); margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <a class="hdr-back" href="index.html">← Suite</a>
+    <div class="hdr-title">Material <span>Lot Tracker</span></div>
+    <div class="hdr-schema">ISA-95 · <b>MaterialDefinition · MaterialLot · MaterialActual</b></div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-kpi">
+      <div class="hdr-kpi-val" id="hdr-lots" style="color:var(--green)">0</div>
+      <div class="hdr-kpi-lbl">Active Lots</div>
+    </div>
+    <div class="hdr-kpi">
+      <div class="hdr-kpi-val" id="hdr-quarantine" style="color:var(--orange)">0</div>
+      <div class="hdr-kpi-lbl">Quarantined</div>
+    </div>
+    <div class="hdr-kpi">
+      <div class="hdr-kpi-val" id="hdr-expiring" style="color:var(--coral)">0</div>
+      <div class="hdr-kpi-lbl">Expiring Soon</div>
+    </div>
+    <div class="hdr-kpi">
+      <div class="hdr-kpi-val" id="hdr-flags" style="color:var(--ink-s)">0</div>
+      <div class="hdr-kpi-lbl">AI Flags</div>
+    </div>
+    <div class="live-pill"><div class="live-dot"></div>Live</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- LEFT: Material Definitions -->
+  <div class="col">
+    <div class="col-inner">
+      <div class="col-title">MaterialDefinition</div>
+      <div id="matdef-list"></div>
+      <div class="isa-note" style="margin-top:4px">
+        <b>ISA-95 note:</b> A MaterialDefinition describes what a material <i>is</i> — its class, properties, shelf life, and storage requirements. Each lot is an instance of a definition via <b>MaterialDefinitionID</b>.
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTRE: Lot Tracker -->
+  <div class="col">
+    <div class="col-inner">
+      <div class="col-title">MaterialLot — Lifecycle View</div>
+      <div class="lot-filters">
+        <button class="lf-btn active" data-f="all"        onclick="filterLots(this,'all')">All Lots</button>
+        <button class="lf-btn" data-f="released"          onclick="filterLots(this,'released')">Released</button>
+        <button class="lf-btn" data-f="in-use"            onclick="filterLots(this,'in-use')">In Use</button>
+        <button class="lf-btn" data-f="quarantine"        onclick="filterLots(this,'quarantine')">Quarantine</button>
+        <button class="lf-btn" data-f="expired"           onclick="filterLots(this,'expired')">Expired</button>
+        <button class="lf-btn" data-f="consumed"          onclick="filterLots(this,'consumed')">Consumed</button>
+      </div>
+      <div id="lot-list"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: AI Panel -->
+  <div class="col">
+    <div class="col-inner">
+      <div class="col-title">AI Interventions</div>
+
+      <div class="ai-summary-box" id="ai-summary-box">
+        <div class="ai-head">◆ AI · Material Intelligence</div>
+        <div class="ai-body" id="ai-summary-body">Scanning material lot records…</div>
+      </div>
+
+      <div class="ai-section">
+        <div class="ai-sec-title">Inventory at a Glance</div>
+        <div class="inv-grid" id="inv-grid"></div>
+      </div>
+
+      <div class="ai-section">
+        <div class="ai-sec-title">Consumption Rate (last 8 batches)</div>
+        <div class="consumption-chart" id="consumption-chart"></div>
+        <div style="font-size:9.5px;color:var(--ink-m);margin-top:6px;font-family:var(--mono)">
+          Lek dataset baseline: mean batch yield 98.3% (SD ±1.1%), n=1,005 batches
+        </div>
+      </div>
+
+      <div class="ai-section">
+        <div class="ai-sec-title">Active Flags</div>
+        <div id="ai-flags"></div>
+      </div>
+
+      <div class="isa-note">
+        <b>Data grounding:</b> Lot thresholds derived from Lek Pharmaceuticals 1,005-batch dataset (Žagar & Mihelič, Scientific Data 2022) and BioPlan Associates 22nd Annual Report. Material failure = top cause of batch failures in facilities &lt;1,000L (1.9%).
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- DRAWER -->
+<div class="scrim" id="scrim" onclick="closeDrawer(event)">
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div>
+        <div class="d-eyebrow" id="d-eyebrow"></div>
+        <div class="d-title" id="d-title"></div>
+        <div class="d-sub" id="d-sub"></div>
+      </div>
+      <button class="d-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body" id="d-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div style="font-size:16px;flex-shrink:0" id="t-icon">◆</div>
+  <div class="toast-body"><b id="t-title"></b><span id="t-msg"></span></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   ISA-95 DATA MODEL
+   Three schemas from the XSD table:
+
+   MaterialDefinition   — what the material IS
+     MaterialDefinitionID, MaterialClassID, Description, Version,
+     PublishedDate, Property (ShelfLifeDays, StorageCondition, HazardClass)
+
+   MaterialLot          — a specific batch/lot of that material
+     MaterialLotID, MaterialDefinitionID, LotStatus, Quantity,
+     ExpirationDate, Location, Property (QualityInfo)
+
+   MaterialActual       — actual consumption/production records
+     MaterialLotID, MaterialUse (Input/Output), Quantity,
+     StartTime, EndTime, Property (Waste, Yield, Variance)
+   ═══════════════════════════════════════════════════════════════ */
+
+const TODAY = new Date('2025-03-18');
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r.toISOString().slice(0,10); }
+function daysUntil(dateStr){ return Math.round((new Date(dateStr)-TODAY)/86400000); }
+
+// ── MaterialDefinition records ───────────────────────────────
+const MATDEFS = [
+  {
+    id:'MAT-API-X001', name:'API-X Bulk Substance', classId:'API',
+    version:'3.1', publishedDate:'2024-11-01',
+    properties:{
+      ShelfLifeDays: 730, StorageCondition:'2–8°C, protected from light',
+      HazardClass:'Category III', MicrobiologicalGrade:'Pharmaceutical Grade',
+      ParticleSizeTarget:'D50: 39.7µm ±11.7µm'
+    }
+  },
+  {
+    id:'MAT-EXC-LACT', name:'Lactose Monohydrate', classId:'EXCIPIENT',
+    version:'2.0', publishedDate:'2024-08-15',
+    properties:{
+      ShelfLifeDays: 1825, StorageCondition:'<25°C, dry',
+      HazardClass:'Non-hazardous', MicrobiologicalGrade:'Ph.Eur. compliant',
+      ParticleSizeTarget:'D50: 150µm ±20µm'
+    }
+  },
+  {
+    id:'MAT-EXC-SMCC', name:'Silicified MCC (SMCC)', classId:'EXCIPIENT',
+    version:'1.4', publishedDate:'2024-06-01',
+    properties:{
+      ShelfLifeDays: 1460, StorageCondition:'<30°C, humidity <65%',
+      HazardClass:'Non-hazardous', MicrobiologicalGrade:'Ph.Eur. compliant',
+      WaterContent:'4.5% ±0.1%'
+    }
+  },
+  {
+    id:'MAT-EXC-MGST', name:'Magnesium Stearate', classId:'EXCIPIENT',
+    version:'2.2', publishedDate:'2024-09-10',
+    properties:{
+      ShelfLifeDays: 1095, StorageCondition:'<25°C, dry',
+      HazardClass:'Non-hazardous', MicrobiologicalGrade:'Ph.Eur. compliant',
+      PurityMin:'99.0%'
+    }
+  },
+  {
+    id:'MAT-PKG-FILM', name:'Film Coating Premix', classId:'PACKAGING',
+    version:'1.1', publishedDate:'2025-01-05',
+    properties:{
+      ShelfLifeDays: 540, StorageCondition:'<25°C, dry',
+      HazardClass:'Non-hazardous', Colour:'White (Opadry II)',
+      SolidsContent:'20% w/w in water'
+    }
+  }
+];
+
+// ── MaterialLot records ──────────────────────────────────────
+// LotStatus values from ISA-95: Released, Quarantine, Hold, Consumed, Expired
+const LOTS = [
+  // API-X lots
+  {
+    id:'LOT-4410', matDefId:'MAT-API-X001', status:'in-use',
+    quantity:{ value:125, unit:'kg', original:200 },
+    expirationDate: addDays(TODAY, 340),
+    receiptDate: addDays(TODAY,-45), releaseDate: addDays(TODAY,-40),
+    location:'Cold Store B — Rack 12',
+    properties:{ APIContent:'94.4%', TotalImpurities:'0.18%', WaterContent:'1.4%', D50:'38.2µm', CofA:'COA-4410-2024' },
+    actuals:[
+      { id:'ACT-001', use:'Input', qty:'75 kg', startTime:'2025-03-10 07:00', endTime:'2025-03-10 09:30', property:{ Yield:'99.1%', Variance:'-0.9%' }},
+      { id:'ACT-002', use:'Input', qty:'0 kg', startTime:'2025-03-18 07:00', endTime:'—', property:{ Yield:'—', Variance:'—' }}
+    ],
+    consumptionHistory:[72,68,75,70,73,71,75,0]
+  },
+  {
+    id:'LOT-4422', matDefId:'MAT-API-X001', status:'quarantine',
+    quantity:{ value:300, unit:'kg', original:300 },
+    expirationDate: addDays(TODAY, 290),
+    receiptDate: addDays(TODAY,-5), releaseDate: null,
+    location:'Quarantine Zone A — Bay 3',
+    properties:{ APIContent:'93.8%', TotalImpurities:'0.41%', WaterContent:'1.8%', D50:'62.1µm', CofA:'COA-4422-2025' },
+    actuals:[],
+    consumptionHistory:[0,0,0,0,0,0,0,0],
+    quarantineReason:'API particle size D50 at 62.1µm — exceeds internal acceptance criterion of 55µm. Under QA hold pending re-sampling and supplier investigation.'
+  },
+  {
+    id:'LOT-4398', matDefId:'MAT-API-X001', status:'expired',
+    quantity:{ value:18, unit:'kg', original:150 },
+    expirationDate: addDays(TODAY,-8),
+    receiptDate: addDays(TODAY,-380), releaseDate: addDays(TODAY,-375),
+    location:'Cold Store B — Rack 8 (HOLD)',
+    properties:{ APIContent:'94.1%', TotalImpurities:'0.22%', WaterContent:'1.6%', D50:'40.1µm', CofA:'COA-4398-2024' },
+    actuals:[],
+    consumptionHistory:[80,75,60,55,62,58,0,0]
+  },
+  // Lactose lots
+  {
+    id:'LOT-2201', matDefId:'MAT-EXC-LACT', status:'released',
+    quantity:{ value:280, unit:'kg', original:500 },
+    expirationDate: addDays(TODAY, 1240),
+    receiptDate: addDays(TODAY,-20), releaseDate: addDays(TODAY,-15),
+    location:'Dry Goods Store — Rack 22',
+    properties:{ WaterContent:'0.09%', PurityMin:'99.5%', D50:'152µm', MicroCount:'<100 CFU/g', CofA:'COA-2201-2024' },
+    actuals:[
+      { id:'ACT-003', use:'Input', qty:'220 kg', startTime:'2025-03-08 08:00', endTime:'2025-03-08 10:00', property:{ Yield:'99.8%', Variance:'+0.2%' }}
+    ],
+    consumptionHistory:[55,60,58,62,55,60,63,0]
+  },
+  {
+    id:'LOT-2187', matDefId:'MAT-EXC-LACT', status:'consumed',
+    quantity:{ value:0, unit:'kg', original:500 },
+    expirationDate: addDays(TODAY, 950),
+    receiptDate: addDays(TODAY,-90), releaseDate: addDays(TODAY,-85),
+    location:'Consumed — Archived',
+    properties:{ WaterContent:'0.08%', PurityMin:'99.6%', D50:'149µm', CofA:'COA-2187-2024' },
+    actuals:[
+      { id:'ACT-004', use:'Input', qty:'500 kg', startTime:'2025-01-05 07:00', endTime:'2025-02-28 16:00', property:{ Yield:'99.5%', Variance:'+0.5%' }}
+    ],
+    consumptionHistory:[62,58,60,55,58,62,60,55]
+  },
+  // SMCC
+  {
+    id:'LOT-1145', matDefId:'MAT-EXC-SMCC', status:'released',
+    quantity:{ value:42, unit:'kg', original:100 },
+    expirationDate: addDays(TODAY, 12),
+    receiptDate: addDays(TODAY,-380), releaseDate: addDays(TODAY,-375),
+    location:'Dry Goods Store — Rack 18',
+    properties:{ WaterContent:'4.5%', BulkDensity:'0.31 g/mL', CofA:'COA-1145-2023' },
+    actuals:[
+      { id:'ACT-005', use:'Input', qty:'58 kg', startTime:'2025-01-10 09:00', endTime:'2025-03-15 17:00', property:{ Yield:'99.2%', Variance:'-0.8%' }}
+    ],
+    consumptionHistory:[8,6,7,9,8,7,6,5]
+  },
+  // Mg Stearate
+  {
+    id:'LOT-0932', matDefId:'MAT-EXC-MGST', status:'released',
+    quantity:{ value:18.5, unit:'kg', original:25 },
+    expirationDate: addDays(TODAY, 520),
+    receiptDate: addDays(TODAY,-60), releaseDate: addDays(TODAY,-55),
+    location:'Dry Goods Store — Rack 9',
+    properties:{ Purity:'99.4%', LossOnDrying:'<4%', CofA:'COA-0932-2024' },
+    actuals:[
+      { id:'ACT-006', use:'Input', qty:'6.5 kg', startTime:'2025-02-01 08:00', endTime:'2025-03-15 17:00', property:{ Yield:'99.9%', Variance:'+0.1%' }}
+    ],
+    consumptionHistory:[1.5,1.2,1.4,1.3,1.5,1.2,1.0,0]
+  },
+  // Film coating
+  {
+    id:'LOT-FC-221', matDefId:'MAT-PKG-FILM', status:'released',
+    quantity:{ value:8, unit:'kg', original:20 },
+    expirationDate: addDays(TODAY, 180),
+    receiptDate: addDays(TODAY,-150), releaseDate: addDays(TODAY,-145),
+    location:'Dry Goods Store — Rack 30',
+    properties:{ AppearanceCheck:'Compliant', MoistureContent:'<0.5%', CofA:'COA-FC-221-2024' },
+    actuals:[
+      { id:'ACT-007', use:'Input', qty:'12 kg', startTime:'2025-01-15 10:00', endTime:'2025-03-12 16:00', property:{ Yield:'99.0%', Variance:'-1.0%' }}
+    ],
+    consumptionHistory:[3,2,2,3,2,2,1,1]
+  }
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   HELPER FUNCTIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+function getStatusColor(status){
+  return { released:'var(--green)', quarantine:'var(--orange)', expired:'var(--coral)', 'in-use':'var(--blue)', consumed:'var(--ink-m)' }[status] || 'var(--ink-m)';
+}
+function getStatusBadgeClass(status){
+  return { released:'sb-released', quarantine:'sb-quarantine', expired:'sb-expired', 'in-use':'sb-in-use', consumed:'sb-consumed' }[status] || 'sb-consumed';
+}
+function getStatusLabel(status){
+  return { released:'Released', quarantine:'Quarantine', expired:'Expired', 'in-use':'In Use', consumed:'Consumed' }[status] || status;
+}
+function getConsumptionPct(lot){
+  if(!lot.quantity.original) return 0;
+  return Math.round(((lot.quantity.original - lot.quantity.value) / lot.quantity.original) * 100);
+}
+function getConsumptionBarColor(pct){
+  if(pct >= 90) return 'var(--coral)';
+  if(pct >= 70) return 'var(--orange)';
+  return 'var(--green)';
+}
+function getTimelineProgress(lot){
+  const phases = ['Receipt','QA Release','In Use','Consumed/Expired'];
+  let pct = 0, current = 0;
+  if(lot.status==='quarantine')  { pct=8; current=0; }
+  else if(lot.status==='released') { pct=30; current=1; }
+  else if(lot.status==='in-use')   { pct=30 + getConsumptionPct(lot)*0.45; current=2; }
+  else if(lot.status==='consumed') { pct=100; current=3; }
+  else if(lot.status==='expired')  { pct=60; current=2; }
+  return { pct: Math.min(pct,100), current };
+}
+function getMatDef(id){ return MATDEFS.find(m=>m.id===id); }
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER: MATERIAL DEFINITIONS (left column)
+   ═══════════════════════════════════════════════════════════════ */
+
+let selectedMatDef = null;
+let lotFilter = 'all';
+
+function renderMatDefs(){
+  const el = document.getElementById('matdef-list');
+  el.innerHTML = MATDEFS.map(m=>{
+    const lots = LOTS.filter(l=>l.matDefId===m.id);
+    const released = lots.filter(l=>l.status==='released'||l.status==='in-use').length;
+    const quar = lots.filter(l=>l.status==='quarantine').length;
+    const exp = lots.filter(l=>l.status==='expired').length;
+    const cons = lots.filter(l=>l.status==='consumed').length;
+    const sel = selectedMatDef===m.id;
+    return `
+      <div class="matdef-card${sel?' selected':''}" onclick="selectMatDef('${m.id}')">
+        <div class="matdef-top">
+          <div>
+            <div class="matdef-id">${m.id}</div>
+            <div class="matdef-name">${m.name}</div>
+          </div>
+          <span class="matdef-class-tag">${m.classId}</span>
+        </div>
+        <div class="matdef-props">
+          <div class="matdef-prop"><span class="matdef-prop-key">ShelfLifeDays</span><span class="matdef-prop-val">${m.properties.ShelfLifeDays}d</span></div>
+          <div class="matdef-prop"><span class="matdef-prop-key">StorageCondition</span><span class="matdef-prop-val" style="text-align:right;max-width:130px;line-height:1.3">${m.properties.StorageCondition}</span></div>
+          <div class="matdef-prop"><span class="matdef-prop-key">Version</span><span class="matdef-prop-val">v${m.version}</span></div>
+        </div>
+        <div class="lot-count-row">
+          ${released?`<span class="lc-chip released">✓ ${released} lot${released>1?'s':''}</span>`:''}
+          ${quar?`<span class="lc-chip quarantine">⚠ ${quar} QC hold</span>`:''}
+          ${exp?`<span class="lc-chip expired">✕ ${exp} expired</span>`:''}
+          ${cons?`<span class="lc-chip consumed">· ${cons} consumed</span>`:''}
+          ${!released&&!quar&&!exp&&!cons?`<span class="lc-chip consumed">no active lots</span>`:''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectMatDef(id){
+  selectedMatDef = selectedMatDef===id ? null : id;
+  renderMatDefs();
+  renderLots();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER: LOT LIST (centre — the signature timeline element)
+   ═══════════════════════════════════════════════════════════════ */
+
+function filterLots(btn, f){
+  document.querySelectorAll('.lf-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  lotFilter = f;
+  renderLots();
+}
+
+function renderLots(){
+  const el = document.getElementById('lot-list');
+  let lots = selectedMatDef ? LOTS.filter(l=>l.matDefId===selectedMatDef) : LOTS;
+  if(lotFilter!=='all') lots = lots.filter(l=>l.status===lotFilter);
+
+  if(!lots.length){
+    el.innerHTML = `<div style="color:var(--ink-m);font-size:12px;padding:16px">No lots match this filter.</div>`;
+    return;
+  }
+
+  const stageLabels = ['Receipt','Release','In Use','Done'];
+  const stageColors = ['var(--ink-m)','var(--green)','var(--blue)','var(--ink-m)'];
+
+  el.innerHTML = lots.map(lot=>{
+    const def = getMatDef(lot.matDefId);
+    const days = daysUntil(lot.expirationDate);
+    const expiryClass = days<0?'alert':days<30?'warn':days<90?'warn':'ok';
+    const expiryLabel = days<0?`Expired ${Math.abs(days)}d ago`:days<30?`Expires in ${days}d`:`${days}d remaining`;
+    const consumePct = getConsumptionPct(lot);
+    const timeline = getTimelineProgress(lot);
+    const timelineColor = lot.status==='expired'?'var(--coral)':lot.status==='quarantine'?'var(--orange)':getStatusColor(lot.status);
+
+    return `
+      <div class="lot-card status-${lot.status}" onclick="openDrawer('${lot.id}')">
+        <div class="lot-card-head">
+          <div>
+            <div class="lot-id-row">
+              <span class="lot-id">${lot.id}</span>
+              <span class="lot-status-badge ${getStatusBadgeClass(lot.status)}">${getStatusLabel(lot.status)}</span>
+            </div>
+            <div class="lot-matdef">${lot.matDefId} · ${def?.name||''}</div>
+          </div>
+        </div>
+        <div class="lot-meta-grid">
+          <div class="lmg-cell">
+            <div class="lmg-key">Quantity</div>
+            <div class="lmg-val blue">${lot.quantity.value} ${lot.quantity.unit}</div>
+          </div>
+          <div class="lmg-cell">
+            <div class="lmg-key">Expiry</div>
+            <div class="lmg-val ${expiryClass}">${expiryLabel}</div>
+          </div>
+          <div class="lmg-cell">
+            <div class="lmg-key">Consumed</div>
+            <div class="lmg-val" style="color:${getConsumptionBarColor(consumePct)}">${consumePct}%</div>
+          </div>
+        </div>
+
+        <!-- SIGNATURE ELEMENT: Lot Lifecycle Timeline -->
+        <div class="lot-timeline">
+          <div class="lt-label">ISA-95 MaterialLot Lifecycle</div>
+          <div class="lt-track">
+            <div class="lt-fill" style="width:${timeline.pct}%;background:${timelineColor}"></div>
+            <div class="lt-marker" style="left:${timeline.pct}%;background:${timelineColor}"></div>
+          </div>
+          <div class="lt-stages">
+            ${stageLabels.map((s,i)=>`<span class="lt-stage-lbl" style="color:${i===timeline.current?timelineColor:'var(--ink-m)'}">${s}</span>`).join('')}
+          </div>
+        </div>
+
+        <!-- Consumption bar for in-use lots -->
+        ${lot.status==='in-use'||lot.status==='consumed'?`
+        <div class="consumption-bar">
+          <div class="cb-label">
+            <span>Consumption: ${consumePct}% of ${lot.quantity.original} ${lot.quantity.unit}</span>
+            <span style="color:${getConsumptionBarColor(consumePct)}">${lot.quantity.value} ${lot.quantity.unit} remaining</span>
+          </div>
+          <div class="cb-track">
+            <div class="cb-fill" style="width:${consumePct}%;background:${getConsumptionBarColor(consumePct)}"></div>
+          </div>
+        </div>`:''}
+      </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER: AI PANEL
+   All logic derived from MaterialLot field values:
+   LotStatus, ExpirationDate, Quantity, MaterialActual data
+   Grounded in: BioPlan 1.9% material failure rate, Lek D50 data,
+   $25-55K OOS cost (Merck/Beth Junker)
+   ═══════════════════════════════════════════════════════════════ */
+
+function renderAI(){
+  const activeLots = LOTS.filter(l=>l.status!=='consumed');
+  const quarantine = LOTS.filter(l=>l.status==='quarantine');
+  const expired = LOTS.filter(l=>l.status==='expired');
+  const expiringSoon = LOTS.filter(l=>l.status!=='consumed'&&l.status!=='expired'&&daysUntil(l.expirationDate)<30&&daysUntil(l.expirationDate)>=0);
+  const flags = buildFlags();
+
+  // Header KPIs
+  document.getElementById('hdr-lots').textContent = activeLots.length;
+  document.getElementById('hdr-quarantine').textContent = quarantine.length;
+  document.getElementById('hdr-expiring').textContent = expiringSoon.length + expired.length;
+  document.getElementById('hdr-flags').textContent = flags.length;
+
+  // Summary
+  const box = document.getElementById('ai-summary-box');
+  const txt = document.getElementById('ai-summary-body');
+  if(quarantine.length>0 && expired.length>0){
+    box.className='ai-summary-box alert';
+    txt.innerHTML=`<b>${quarantine.length} lot(s) quarantined</b> and <b>${expired.length} lot(s) expired</b> require immediate action. Quarantined API lot LOT-4422 has particle size D50 of <b>62.1µm</b> — exceeds the Lek dataset's dataset-documented concern threshold. BioPlan: material failure is the top cause of batch failures in &lt;1,000L facilities at <b>1.9%</b> of batches.`;
+  } else if(quarantine.length>0||expired.length>0||expiringSoon.length>0){
+    box.className='ai-summary-box warn';
+    txt.innerHTML=`<b>${flags.length} material flag(s)</b> require attention. ${expiringSoon.length} lot(s) expiring within 30 days — schedule re-order or accelerate consumption. Unresolved material issues contribute to the industry-average <b>$25,000–$55,000 OOS investigation cost</b> (Beth Junker, Merck R&D).`;
+  } else {
+    box.className='ai-summary-box';
+    txt.innerHTML=`All active material lots are within status, quantity, and expiry bounds. <b>${activeLots.length} lots</b> across ${MATDEFS.length} material definitions are tracking normally against the Lek pharmaceutical dataset baselines.`;
+  }
+
+  // Inventory grid
+  const totalKgAvail = LOTS.filter(l=>l.status==='released'||l.status==='in-use').reduce((s,l)=>s+l.quantity.value,0);
+  const totalKgQuar  = LOTS.filter(l=>l.status==='quarantine').reduce((s,l)=>s+l.quantity.value,0);
+  document.getElementById('inv-grid').innerHTML = [
+    { val: activeLots.length,       lbl:'Active Lots', color:'var(--green)' },
+    { val: quarantine.length,        lbl:'QC Holds', color: quarantine.length?'var(--orange)':'var(--ink-m)' },
+    { val: totalKgAvail.toFixed(0)+'kg', lbl:'Available Stock', color:'var(--blue)' },
+    { val: totalKgQuar.toFixed(0)+'kg',  lbl:'Stock on Hold', color: totalKgQuar?'var(--orange)':'var(--ink-m)' },
+  ].map(c=>`
+    <div class="inv-cell">
+      <div class="inv-val" style="color:${c.color}">${c.val}</div>
+      <div class="inv-lbl">${c.lbl}</div>
+    </div>`).join('');
+
+  // Consumption chart — simulated from Lek baseline (98.3% yield, ~125kg API per batch)
+  const consData = [118,121,115,123,120,119,124,0];
+  const maxCons = Math.max(...consData, 1);
+  document.getElementById('consumption-chart').innerHTML = consData.map((v,i)=>{
+    const h = Math.round((v/maxCons)*100);
+    const cls = i===7?'':'(v>122?\'high\':v<116?\'spike\':\'\')'
+    const actual = i===7?'cc-bar':'cc-bar'+(v>122?' high':v<116?' spike':'');
+    return `<div class="${actual}" style="height:${h||4}%" title="Batch ${i+1}: ${v||'pending'}kg"></div>`;
+  }).join('');
+
+  // Flags
+  document.getElementById('ai-flags').innerHTML = flags.length
+    ? flags.map(f=>`
+        <div class="ai-flag ${f.type}">
+          <div class="ai-flag-top"><span class="ai-tag t-${f.type}">${f.type}</span><span class="ai-flag-lot">${f.lot}</span></div>
+          <div class="ai-flag-msg">${f.msg}</div>
+          <div class="ai-flag-action" onclick="showToast('◆','Action logged','${f.action}')">→ ${f.action}</div>
+          <div class="ai-flag-time">${f.time}</div>
+        </div>`).join('')
+    : `<div class="ai-flag ok"><div class="ai-flag-top"><span class="ai-tag t-ok">ALL CLEAR</span></div><div class="ai-flag-msg">No material flags detected.</div></div>`;
+}
+
+function buildFlags(){
+  const flags = [];
+  LOTS.forEach(lot=>{
+    if(lot.status==='consumed') return;
+    const days = daysUntil(lot.expirationDate);
+    const def = getMatDef(lot.matDefId);
+    const consumePct = getConsumptionPct(lot);
+
+    // Expired lot still in storage
+    if(lot.status==='expired'){
+      flags.push({ type:'alert', lot:lot.id,
+        msg:`<b>MaterialLot "${lot.id}" (${def?.name})</b> has exceeded its ExpirationDate by <b>${Math.abs(days)} days</b> and must not be used. <b>${lot.quantity.value} ${lot.quantity.unit}</b> remains — schedule disposal. Any use would constitute a GMP deviation.`,
+        action:'Initiate disposal · Log deviation record',
+        time:`ExpirationDate: ${lot.expirationDate}` });
+    }
+    // Quarantine hold
+    if(lot.status==='quarantine'){
+      flags.push({ type:'alert', lot:lot.id,
+        msg:`<b>MaterialLot "${lot.id}"</b> is under QC hold. ${lot.quarantineReason||'Reason not recorded.'}  This lot cannot be used until QA releases it. Lek dataset: API D50 &gt;55µm correlates with compression force variability.`,
+        action:'Escalate to QA · Initiate supplier investigation',
+        time:`Received: ${lot.receiptDate}` });
+    }
+    // Expiring soon
+    if(days>=0 && days<30 && lot.status!=='quarantine' && lot.status!=='expired'){
+      flags.push({ type:'warn', lot:lot.id,
+        msg:`<b>MaterialLot "${lot.id}" (${def?.name})</b> expires in <b>${days} day${days!==1?'s':''}</b> with <b>${lot.quantity.value} ${lot.quantity.unit} remaining</b>. Accelerate consumption or initiate re-order. Material failure is the top batch failure cause at facilities &lt;1,000L (BioPlan, 1.9%).`,
+        action:'Accelerate consumption schedule · Place re-order',
+        time:`ExpirationDate: ${lot.expirationDate}` });
+    }
+    // High consumption — running low
+    if((lot.status==='released'||lot.status==='in-use') && consumePct>=80 && lot.quantity.value>0){
+      flags.push({ type:'warn', lot:lot.id,
+        msg:`<b>MaterialLot "${lot.id}"</b> is <b>${consumePct}% consumed</b> with only ${lot.quantity.value} ${lot.quantity.unit} remaining. Based on the Lek dataset consumption baseline (~125 kg API per batch), this lot may not cover the next full batch.`,
+        action:'Confirm next lot availability · Update consumption plan',
+        time:`${lot.quantity.value}${lot.quantity.unit} of ${lot.quantity.original}${lot.quantity.unit} remaining` });
+    }
+    // Low stock — no follow-on lot released
+    if(lot.status==='in-use' && lot.quantity.value < 50 && lot.matDefId==='MAT-API-X001'){
+      const nextLot = LOTS.find(l=>l.matDefId===lot.matDefId&&l.status==='released'&&l.id!==lot.id);
+      if(!nextLot){
+        flags.push({ type:'alert', lot:lot.id,
+          msg:`<b>API stock critically low.</b> LOT-4422 is quarantined and cannot be used. No released follow-on lot available for ${def?.name}. Production stoppage risk is high.`,
+          action:'Emergency re-order · Re-test LOT-4422 for early release',
+          time:'Detected now' });
+      }
+    }
+  });
+  return flags;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DRAWER — Full ISA-95 field view per lot
+   ═══════════════════════════════════════════════════════════════ */
+
+function openDrawer(lotId){
+  const lot = LOTS.find(l=>l.id===lotId);
+  if(!lot) return;
+  const def = getMatDef(lot.matDefId);
+  const days = daysUntil(lot.expirationDate);
+  const consumePct = getConsumptionPct(lot);
+
+  document.getElementById('d-eyebrow').textContent = `ISA-95 MaterialLot · ${lot.id}`;
+  document.getElementById('d-title').textContent = lot.id;
+  document.getElementById('d-sub').textContent = `${lot.matDefId} · ${def?.name||''}`;
+
+  // Status banner
+  const bannerMsg = {
+    released: `This lot has passed QA review and is <b>available for use</b>. All ISA-95 MaterialLot fields are within acceptable bounds.`,
+    quarantine: `This lot is <b>under QC hold</b>. ${lot.quarantineReason} Do not use until QA releases.`,
+    expired: `This lot has <b>exceeded its ExpirationDate</b>. It must not be dispensed or used. Schedule disposal and log a GMP record.`,
+    'in-use': `This lot is <b>currently being consumed</b> in active production. ${consumePct}% of the original quantity has been used.`,
+    consumed: `This lot has been <b>fully consumed</b>. All MaterialActual records are closed.`
+  }[lot.status] || '';
+
+  const statusCls = { released:'released', quarantine:'quarantine', expired:'expired', 'in-use':'in-use', consumed:'consumed' }[lot.status];
+  const statusCol = getStatusColor(lot.status);
+
+  let html = `
+    <div class="status-banner ${statusCls}">
+      <div class="sb-top">
+        <span class="sb-pill" style="background:${statusCol};color:${lot.status==='in-use'?'#051424':'#060A0E'}">${getStatusLabel(lot.status).toUpperCase()}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--ink-m)">${lot.id}</span>
+      </div>
+      <div class="sb-msg">${bannerMsg}</div>
+    </div>`;
+
+  // ISA-95 MaterialLot fields
+  html += `<div class="d-sec">
+    <div class="d-sec-title">ISA-95 MaterialLot Fields</div>
+    <div class="d-row"><div class="d-key">MaterialLotID</div><div class="d-val" style="color:var(--green)">${lot.id}</div></div>
+    <div class="d-row"><div class="d-key">MaterialDefinitionID</div><div class="d-val" style="color:var(--violet)">${lot.matDefId}</div></div>
+    <div class="d-row"><div class="d-key">LotStatus</div><div class="d-val" style="color:${statusCol}">${getStatusLabel(lot.status)}</div></div>
+    <div class="d-row"><div class="d-key">Quantity (remaining)</div><div class="d-val" style="color:var(--blue)">${lot.quantity.value} ${lot.quantity.unit}</div></div>
+    <div class="d-row"><div class="d-key">Quantity (original)</div><div class="d-val">${lot.quantity.original} ${lot.quantity.unit}</div></div>
+    <div class="d-row"><div class="d-key">ExpirationDate</div><div class="d-val" style="color:${days<0?'var(--coral)':days<30?'var(--orange)':'var(--ink-s)'}">${lot.expirationDate} (${days<0?`${Math.abs(days)}d expired`:`${days}d remaining`})</div></div>
+    <div class="d-row"><div class="d-key">Location</div><div class="d-val" style="color:var(--ink-s);font-size:10.5px;text-align:right;max-width:220px;line-height:1.3">${lot.location}</div></div>
+    <div class="d-row"><div class="d-key">ReceiptDate</div><div class="d-val">${lot.receiptDate}</div></div>
+    <div class="d-row"><div class="d-key">ReleaseDate</div><div class="d-val">${lot.releaseDate||'Pending QA'}</div></div>
+  </div>`;
+
+  // MaterialDefinition reference
+  if(def){
+    html += `<div class="d-sec">
+      <div class="d-sec-title">MaterialDefinition Properties</div>
+      ${Object.entries(def.properties).map(([k,v])=>`
+        <div class="d-row"><div class="d-key">${k}</div><div class="d-val">${v}</div></div>`).join('')}
+    </div>`;
+  }
+
+  // MaterialLot quality properties
+  html += `<div class="d-sec">
+    <div class="d-sec-title">Lot Quality Properties (CofA)</div>
+    ${Object.entries(lot.properties).map(([k,v])=>`
+      <div class="d-row"><div class="d-key">${k}</div><div class="d-val">${v}</div></div>`).join('')}
+  </div>`;
+
+  // MaterialActual records
+  if(lot.actuals.length){
+    html += `<div class="d-sec">
+      <div class="d-sec-title">MaterialActual Records (${lot.actuals.length})</div>
+      ${lot.actuals.map(a=>`
+        <div class="actual-row">
+          <div class="ar-top">
+            <span class="ar-id">${a.id}</span>
+            <span class="ar-use ${a.use.toLowerCase()}">${a.use}</span>
+          </div>
+          <div class="ar-fields">
+            <div class="ar-field"><div class="ar-field-key">MaterialUse</div><div class="ar-field-val">${a.use}</div></div>
+            <div class="ar-field"><div class="ar-field-key">Quantity</div><div class="ar-field-val">${a.qty}</div></div>
+            <div class="ar-field"><div class="ar-field-key">StartTime</div><div class="ar-field-val">${a.startTime}</div></div>
+            <div class="ar-field"><div class="ar-field-key">EndTime</div><div class="ar-field-val">${a.endTime}</div></div>
+            ${Object.entries(a.property).map(([k,v])=>`<div class="ar-field"><div class="ar-field-key">${k}</div><div class="ar-field-val">${v}</div></div>`).join('')}
+          </div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  // AI recommendation
+  const recClass = lot.status==='expired'||lot.status==='quarantine'?'alert':
+    (days<30&&days>=0)||consumePct>=80?'warn':'';
+  const recText = lot.status==='expired'
+    ? `This lot's ExpirationDate has passed. Any use constitutes a GMP deviation under 21 CFR 211.122. With <b>${lot.quantity.value} ${lot.quantity.unit} remaining</b>, schedule disposal and record a deviation. Industry: OOS investigations cost <b>$25,000–$55,000</b> per event (Beth Junker, Merck R&D).`
+    : lot.status==='quarantine'
+    ? `The D50 value of <b>62.1µm</b> for LOT-4422 exceeds the Lek dataset's normal range (mean 39.7µm, max 67µm). In the dataset, elevated D50 correlates with compression SREL rise and reduced drug release. Do not release until re-sampling confirms conformance.`
+    : consumePct>=80
+    ? `At <b>${consumePct}% consumption</b>, this lot may not cover the next production batch (Lek dataset: ~125kg API per batch). Confirm availability of a released follow-on lot. If LOT-4422 remains quarantined, an emergency re-order may be necessary.`
+    : days<30&&days>=0
+    ? `This lot expires in <b>${days} days</b> with <b>${lot.quantity.value} ${lot.quantity.unit} remaining</b>. Prioritise consumption before expiry or initiate re-order. Wasted material directly increases batch cost and contributes to the 1.9% material failure rate (BioPlan Associates).`
+    : `No immediate action required. This lot is tracking within normal parameters against the Lek pharmaceutical dataset baselines.`;
+
+  html += `<div class="d-sec">
+    <div class="d-sec-title">AI Recommendation</div>
+    <div class="ai-rec${recClass?' '+recClass:''}">
+      <span class="ai-rec-label">◆ AI · Material Intelligence</span>
+      <div class="ai-rec-text">${recText}</div>
+    </div>
+  </div>`;
+
+  html += `<div class="d-actions">
+    ${lot.status==='quarantine'?`<button class="d-btn d-btn-warn" onclick="showToast('⚠','QA hold escalated','LOT-4422 quarantine escalation sent to QA Director.');closeDrawer()">Escalate to QA</button>`:''}
+    ${lot.status==='expired'?`<button class="d-btn d-btn-warn" onclick="showToast('✕','Disposal initiated','Disposal workflow started for ${lot.id}.');closeDrawer()">Initiate Disposal</button>`:''}
+    ${lot.status==='released'||lot.status==='in-use'?`<button class="d-btn d-btn-primary" onclick="showToast('◆','Consumption plan updated','Lot ${lot.id} prioritised in consumption plan.');closeDrawer()">Update Consumption Plan</button>`:''}
+    <button class="d-btn d-btn-secondary" onclick="closeDrawer()">Close</button>
+  </div>`;
+
+  document.getElementById('d-body').innerHTML = html;
+  document.getElementById('scrim').classList.add('open');
+}
+
+function closeDrawer(e){
+  if(!e||e.target.id==='scrim') document.getElementById('scrim').classList.remove('open');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════════════ */
+
+let toastTimer;
+function showToast(icon, title, msg){
+  document.getElementById('t-icon').textContent = icon;
+  document.getElementById('t-title').textContent = title;
+  document.getElementById('t-msg').textContent = msg;
+  const el = document.getElementById('toast');
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 4200);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════ */
+
+renderMatDefs();
+renderLots();
+renderAI();
+</script>
+</body>
+</html>
